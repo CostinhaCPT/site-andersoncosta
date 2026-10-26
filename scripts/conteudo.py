@@ -1,0 +1,123 @@
+# Conteudo original dos 20 imoveis de lancamento (texto proprio, nao copiado).
+C = {
+"AC-0001": dict(
+ titulo="Geminado mobiliado com energia solar no Três Rios do Norte",
+ resumo="Pronto para morar, com móveis, energia solar e quintal com churrasqueira.",
+ descricao="Um geminado de 122 m² pensado para quem quer mudar sem obra e sem comprar móveis: ele é vendido mobiliado, com iluminação em LED já instalada e energia solar funcionando, o que reduz a conta de luz desde o primeiro mês.\n\nSão 3 dormitórios, sendo 1 suíte, e um living que une sala de estar, jantar e cozinha. Nos fundos, o quintal com churrasqueira atende bem o fim de semana em família e ainda deixa espaço para uma piscina no futuro.",
+ destaques=["Vendido mobiliado","Energia solar instalada","Quintal com churrasqueira","Espaço para piscina"],
+ atencao=["Por ser geminado, divide parede com a unidade vizinha","Vale conferir na visita o estado dos móveis incluídos"]),
+"AC-0002": dict(
+ titulo="Apartamento com vista aberta na Ilha da Figueira",
+ resumo="3 dormitórios, sacada com churrasqueira e 2 vagas, a 2 minutos do Centro.",
+ descricao="Para a família que quer a praticidade de apartamento sem abrir mão de espaço: são 108 m² privativos, com 3 dormitórios (1 suíte), living integrado e sacada com churrasqueira voltada para uma vista aberta.\n\nO prédio fica em final de rua, o que traz silêncio, e está a cerca de 2 minutos do Centro. O condomínio tem elevador, salão de festas, playground e espaço pet. As 2 vagas ficam lado a lado, sem manobra.",
+ destaques=["Vista aberta","2 vagas lado a lado","Condomínio com elevador e playground","Final de rua, mais tranquilo"],
+ atencao=["Parcialmente mobiliado: confirmar o que fica no imóvel","Pedir o valor atual do condomínio"]),
+"AC-0003": dict(
+ titulo="Apartamento novo no Centro, para fazer tudo a pé",
+ resumo="3 dormitórios em residencial novo, com sacada gourmet e vista da cidade.",
+ descricao="Morar no Centro de Jaraguá do Sul muda a rotina: mercado, escola, farmácia e academia ficam a uma caminhada. Este apartamento em residencial novo tem 3 dormitórios, com suíte ampla que comporta closet, e living integrado à cozinha.\n\nA sacada com churrasqueira tem boa posição solar e vista da cidade. O prédio conta com dois elevadores, salão de festas e brinquedoteca.",
+ destaques=["Localização central","Residencial novo","Sacada com churrasqueira","Dois elevadores"],
+ atencao=["Metragem compacta para 3 dormitórios (77 m²)","1 vaga de garagem"]),
+"AC-0004": dict(
+ titulo="Geminado de esquina no Amizade, com mais privacidade",
+ resumo="139 m², 3 dormitórios e espaço externo maior por ser unidade de esquina.",
+ descricao="Ser a unidade de esquina faz diferença em um geminado: mais luz, mais privacidade e um espaço externo maior que o das unidades do meio. Aqui são 139 m² com 3 dormitórios (1 suíte), living integrado, lavabo e área com churrasqueira.\n\nO terreno ainda comporta piscina, para quem quer transformar o quintal em área de lazer.",
+ destaques=["Unidade de esquina","Lavabo","Área com churrasqueira","Espaço para piscina"],
+ atencao=["Garagem em sistema de gaveta (um carro atrás do outro)","Esquina pode ter mais movimento de rua: avaliar na visita"]),
+"AC-0005": dict(
+ titulo="Geminado em região alta da Ilha da Figueira, perto da BR-280",
+ resumo="3 dormitórios, quintal privativo com churrasqueira e 2 vagas lado a lado.",
+ descricao="Um geminado de 115 m² construídos em região alta da Ilha da Figueira, com acesso rápido à BR-280 e comércio do dia a dia por perto. A planta tem 3 dormitórios (1 suíte) e living integrado.\n\nNos fundos, um quintal privativo de cerca de 20 m² com churrasqueira. As 2 vagas ficam lado a lado.",
+ destaques=["Região alta","Acesso fácil à BR-280","Quintal privativo com churrasqueira","2 vagas lado a lado"],
+ atencao=["Quintal compacto (cerca de 20 m²)"]),
+"AC-0006": dict(
+ titulo="Geminado com quintal amplo no Três Rios do Norte",
+ resumo="149 m², 3 dormitórios e um quintal que comporta área de lazer ou piscina.",
+ descricao="O ponto forte deste geminado é o quintal: amplo, nos fundos, com espaço para uma área de lazer ou piscina no futuro. A casa tem 149 m², 3 dormitórios (1 suíte) e living integrado com boa distribuição.\n\nUma opção para a família que precisa de área externa para crianças ou pets sem pagar o preço de uma casa isolada.",
+ destaques=["Quintal amplo","Espaço para piscina","Living integrado","2 vagas"],
+ atencao=["Área de lazer ainda a construir"]),
+"AC-0007": dict(
+ titulo="Geminado duplex com garagem fechada no Amizade",
+ resumo="Bom padrão de acabamento, 3 dormitórios e garagem fechada para 2 carros.",
+ descricao="Duplex de 137 m² no Amizade, com acabamento de bom padrão e ambientes integrados no térreo. No andar de cima, 3 dormitórios (1 suíte).\n\nA garagem é fechada, para 2 carros lado a lado, e o quintal tem espaço preparado para pergolado e jacuzzi.",
+ destaques=["Garagem fechada para 2 carros","Acabamento de bom padrão","Quintal para pergolado e jacuzzi"],
+ atencao=["Duplex: escada entre os pavimentos"]),
+"AC-0008": dict(
+ titulo="Geminado duplex de alto padrão no Três Rios do Norte",
+ resumo="Suíte com closet, escada de destaque e quintal com passagem lateral.",
+ descricao="Projeto moderno, com muita luz natural e acabamento de alto padrão. O living é todo integrado e a escada é um dos destaques visuais da casa. No pavimento superior, 3 dormitórios, sendo 1 suíte com closet.\n\nO quintal tem passagem lateral, o que facilita manutenção e ventilação, e espaço para piscina ou área de festas.",
+ destaques=["Suíte com closet","Alto padrão de acabamento","Passagem lateral","Espaço para piscina"],
+ atencao=["Duplex: escada entre os pavimentos"]),
+"AC-0009": dict(
+ titulo="Casa com terreno de 361 m² no Nereu Ramos",
+ resumo="Suíte com hidromassagem, área de festas com fogão a lenha e aquecimento solar.",
+ descricao="Casa de 164 m² em terreno de 361 m², para quem quer espaço de casa de verdade. A suíte tem hidromassagem e há mais 2 dormitórios, além de sala de estar, jantar e cozinha integradas.\n\nA área de festas tem churrasqueira e fogão a lenha, e a água é aquecida por placa solar.",
+ destaques=["Terreno de 361 m²","Suíte com hidromassagem","Fogão a lenha","Aquecimento solar"],
+ atencao=["Nereu Ramos fica mais afastado do Centro: medir o trajeto da sua rotina"]),
+"AC-0010": dict(
+ titulo="Casa térrea com terreno de 383 m² no Três Rios do Sul",
+ resumo="Tudo em um pavimento, área de festas ampla e 8 minutos do Centro.",
+ descricao="Casa térrea de 144 m² em terreno de 383 m², sem escadas, o que agrada famílias com crianças pequenas ou pais idosos. São 3 dormitórios (1 suíte), cozinha e sala integradas e uma área de festas ampla com churrasqueira.\n\nRua tranquila, com boa vizinhança, a cerca de 8 minutos do Centro.",
+ destaques=["Casa térrea","Terreno de 383 m²","Área de festas ampla","2 vagas lado a lado"],
+ atencao=["Cerca de 8 minutos do Centro"]),
+"AC-0011": dict(
+ titulo="Casa com quintal grande no Amizade",
+ resumo="182 m² de terreno, 3 dormitórios e muito espaço externo para a família.",
+ descricao="No Amizade, um dos bairros mais procurados por famílias, esta casa de 141 m² se destaca pelo quintal amplo, que dá liberdade para criar área de lazer ou piscina.\n\nSão 3 dormitórios (1 suíte) e um living espaçoso e integrado.",
+ destaques=["Bairro Amizade","Quintal amplo","Living espaçoso","2 vagas"],
+ atencao=["Área de lazer ainda a construir"]),
+"AC-0012": dict(
+ titulo="Casa no Centro, perto de tudo",
+ resumo="140 m² e 3 dormitórios em uma das regiões mais valorizadas da cidade.",
+ descricao="Casas no Centro de Jaraguá do Sul são raras. Esta tem 140 m², 3 dormitórios (1 suíte) e ambientes bem distribuídos, com mercado, escolas e serviços a poucos minutos.\n\nPara quem quer a rotina prática do Centro com a privacidade de uma casa.",
+ destaques=["Localização central","Casa, não apartamento","Ambientes bem distribuídos"],
+ atencao=["1 vaga de garagem","Centro tem mais movimento e ruído de rua"]),
+"AC-0013": dict(
+ titulo="Casa de 228 m² em terreno de 423 m² na Ilha da Figueira",
+ resumo="Área de festas, depósito e muito terreno, a minutos do Centro.",
+ descricao="Muita casa pelo preço: 228 m² construídos em terreno de 423 m². São 3 dormitórios (1 suíte), sala, cozinha, área de serviço, depósito e uma área de festas que recebe a família toda.\n\nO terreno grande abre possibilidades de ampliação, jardim ou piscina.",
+ destaques=["228 m² construídos","Terreno de 423 m²","Área de festas","Depósito"],
+ atencao=["Confirmar na visita o número de vagas","Avaliar estado de conservação e possíveis reformas"]),
+"AC-0014": dict(
+ titulo="Geminado duplex com piscina privativa",
+ resumo="165 m², suíte com sacada e piscina própria, perto do Rancho Bom.",
+ descricao="Geminado duplex de 165 m² com piscina privativa, algo raro nessa faixa de preço. Acabamento caprichado, 3 dormitórios, sendo 1 suíte com sacada.\n\nA garagem comporta 2 carros lado a lado e a localização é próxima ao Rancho Bom.",
+ destaques=["Piscina privativa","Suíte com sacada","Acabamento caprichado","2 vagas lado a lado"],
+ atencao=["Piscina exige manutenção mensal"]),
+"AC-0015": dict(
+ titulo="Casa moderna com terreno de 373 m² na Ilha da Figueira",
+ resumo="Energia solar, quintal com gramado e preparação para piscina, a 2 minutos do Centro.",
+ descricao="Casa moderna de 143 m² em terreno de 373 m², a cerca de 2 minutos do Centro. São 3 dormitórios (1 suíte), living integrado e garagem para 2 carros.\n\nO quintal com gramado já está preparado para piscina, e a casa tem energia solar instalada.",
+ destaques=["Energia solar","Preparação para piscina","Terreno de 373 m²","2 minutos do Centro"],
+ atencao=[]),
+"AC-0016": dict(
+ titulo="Apartamento com 3 suítes no Centro",
+ resumo="Três suítes, sacada gourmet com sol da manhã e 2 vagas lado a lado.",
+ descricao="Apartamento de cerca de 132 m² privativos no Centro, com 3 suítes: cada um tem seu banheiro, o que faz diferença com filhos adolescentes ou visitas frequentes.\n\nO living é integrado à churrasqueira gourmet, com sol da manhã e vista aberta. As 2 vagas ficam lado a lado.",
+ destaques=["3 suítes","Sol da manhã","Churrasqueira gourmet","2 vagas lado a lado"],
+ atencao=["Pedir valor de condomínio e itens de lazer do prédio"]),
+"AC-0017": dict(
+ titulo="Casa térrea com escritório e terreno de 420 m² no Amizade",
+ resumo="Suíte com closet e hidromassagem, pé-direito alto e área de festas reservada.",
+ descricao="Casa térrea de 220 m² em terreno de 420 m², em rua tranquila do Amizade. A suíte tem closet e hidromassagem, e há mais 2 dormitórios e um escritório, útil para quem trabalha de casa.\n\nA sala de jantar tem pé-direito alto, a cozinha tem móveis sob medida e a área de festas é espaçosa e reservada.",
+ destaques=["Casa térrea","Escritório","Suíte com closet e hidromassagem","Pé-direito alto"],
+ atencao=[]),
+"AC-0018": dict(
+ titulo="Casa nova com pé-direito alto no Três Rios do Norte",
+ resumo="Entregue parcialmente mobiliada, com suíte ampla e espaço para piscina.",
+ descricao="Casa nova de 189 m² em terreno de 337 m², em loteamento tranquilo do Três Rios do Norte. O pé-direito alto e a boa iluminação natural deixam os ambientes amplos.\n\nSão 3 dormitórios, com suíte espaçosa preparada para closet, área de festas com churrasqueira, lavabo e garagem para 2 carros lado a lado. Será entregue parcialmente mobiliada.",
+ destaques=["Casa nova","Pé-direito alto","Parcialmente mobiliada","Espaço para piscina"],
+ atencao=["Confirmar quais móveis ficam no imóvel"]),
+"AC-0019": dict(
+ titulo="Casa térrea em terreno de 507 m² na Vila Nova",
+ resumo="2 suítes, rua sem saída e a 2 minutos do Centro.",
+ descricao="Raro na Vila Nova: casa térrea de 179 m² em terreno de 507 m², numa rua sem saída e silenciosa, a cerca de 2 minutos do Centro. São 2 suítes e mais 1 quarto, sala com pé-direito alto e cozinha com móveis sob medida.\n\nA área de festas com churrasqueira já tem estrutura para um segundo piso, e o terreno tem gramado, jardim e espaço para piscina.",
+ destaques=["Terreno de 507 m²","Rua sem saída","2 suítes","Estrutura para 2º piso"],
+ atencao=[]),
+"AC-0020": dict(
+ titulo="Casa com piscina e vista verde no Três Rios do Norte",
+ resumo="274 m², porteira fechada, suíte master com hidromassagem.",
+ descricao="Casa de 274 m² vendida porteira fechada, pronta para morar. No térreo, sala ampla, cozinha integrada, churrasqueira e piscina com vista para área verde.\n\nNo pavimento superior, suíte master com hidromassagem e mais 2 dormitórios.",
+ destaques=["Piscina com vista verde","Porteira fechada","Suíte master com hidromassagem","274 m²"],
+ atencao=["Confirmar o inventário do que fica (porteira fechada)"]),
+}
