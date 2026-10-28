@@ -11,7 +11,7 @@ export default function P() {
       <div className="passos" style={{ marginTop: 0 }}>
         <div className="passo"><span className="n">01 · CURADORIA</span><h3>Os 3 que fazem sentido</h3><p>Antes de mostrar qualquer imóvel, entendo a rotina da família: escola, trabalho, quantos carros, se precisam de quintal, quanto querem investir. Com isso, seleciono os 3 imóveis que realmente atendem, incluindo opções fora do site.</p></div>
         <div className="passo"><span className="n">02 · ANÁLISE DE COMPRA</span><h3>Os números na mesa</h3><p>Para cada imóvel: preço por m² comparado ao bairro, custo total de aquisição (ITBI de 2% em Jaraguá do Sul, escritura e registro), simulação de financiamento e checklist dos documentos que precisam ser conferidos.</p></div>
-        <div className="passo"><span className="n">03 · VÍDEO HONESTO</span><h3>O que é bom e o que pesa</h3><p>Gravo um tour de cada imóvel mostrando os pontos fortes e também os pontos de atenção. Você chega na visita sabendo o que olhar e sem perder tempo com o que não serve.</p></div>
+        <div className="passo"><span className="n">03 · VÍDEO HONESTO</span><h3>O que é bom e o que pesa</h3><p>Posso gravar um tour de cada imóvel mostrando os pontos fortes e também os pontos de atenção. Você chega na visita sabendo o que olhar e sem perder tempo com o que não serve.</p></div>
       </div>
     </div></section>
     <section className="sec cinza-bg"><div className="wrap duas-col">
