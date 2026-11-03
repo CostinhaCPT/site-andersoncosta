@@ -1,0 +1,962 @@
+{
+  "exportFormatVersion": 2,
+  "exportTime": "2026-10-28 10:30:00",
+  "containerVersion": {
+    "path": "accounts/0/containers/0/versions/0",
+    "accountId": "0",
+    "containerId": "0",
+    "containerVersionId": "0",
+    "name": "Anderson Costa - mensuracao v1",
+    "container": {
+      "path": "accounts/0/containers/0",
+      "accountId": "0",
+      "containerId": "0",
+      "name": "andersoncostaimoveis.com.br",
+      "publicId": "GTM-N45VQ3KJ",
+      "usageContext": [
+        "WEB"
+      ]
+    },
+    "tag": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "201",
+        "name": "GA4 - Google tag",
+        "type": "googtag",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "tagId",
+            "value": "{{CONST - GA4 ID}}"
+          }
+        ],
+        "firingTriggerId": [
+          "2147479553"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "202",
+        "name": "GA4 - Eventos do site",
+        "type": "gaawe",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "eventName",
+            "value": "{{Event}}"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "measurementIdOverride",
+            "value": "{{CONST - GA4 ID}}"
+          },
+          {
+            "type": "LIST",
+            "key": "eventSettingsTable",
+            "list": [
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "imovel"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - imovel}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "ref"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - ref}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "local"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - local}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "origem_form"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - origem_form}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "orcamento"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - orcamento}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "prazo"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - prazo}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "pagina"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - pagina}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "via"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - via}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "tipo"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - tipo}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "gatilho"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - gatilho}}"
+                  }
+                ]
+              },
+              {
+                "type": "MAP",
+                "map": [
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameter",
+                    "value": "com_email"
+                  },
+                  {
+                    "type": "TEMPLATE",
+                    "key": "parameterValue",
+                    "value": "{{DLV - com_email}}"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "firingTriggerId": [
+          "101"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "203",
+        "name": "Meta - Pixel base (PageView)",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?\nn.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;\nn.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;\nt.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,\ndocument,'script','https://connect.facebook.net/en_US/fbevents.js');\nif(!window.__acPixel){window.__acPixel=1;fbq('init','{{CONST - Meta Pixel ID}}');fbq('track','PageView');}\n</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": [
+          "2147479553",
+          "102"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "consentSettings": {
+          "consentStatus": "NEEDED",
+          "consentType": {
+            "type": "LIST",
+            "list": [
+              {
+                "type": "TEMPLATE",
+                "value": "ad_storage"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "204",
+        "name": "Meta - Contact (WhatsApp)",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>fbq('track','Contact',{content_ids:['{{DLV - imovel}}'],content_type:'home_listing'},{eventID:'{{DLV - eid}}'});</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": [
+          "103"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "setupTag": [
+          {
+            "tagName": "Meta - Pixel base (PageView)",
+            "stopOnSetupFailure": true
+          }
+        ],
+        "consentSettings": {
+          "consentStatus": "NEEDED",
+          "consentType": {
+            "type": "LIST",
+            "list": [
+              {
+                "type": "TEMPLATE",
+                "value": "ad_storage"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "205",
+        "name": "Meta - Lead (formulários e chat)",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>fbq('track','Lead',{content_name:'{{Event}}',content_ids:['{{DLV - imovel}}']},{eventID:'{{DLV - eid}}'});</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": [
+          "104"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "setupTag": [
+          {
+            "tagName": "Meta - Pixel base (PageView)",
+            "stopOnSetupFailure": true
+          }
+        ],
+        "consentSettings": {
+          "consentStatus": "NEEDED",
+          "consentType": {
+            "type": "LIST",
+            "list": [
+              {
+                "type": "TEMPLATE",
+                "value": "ad_storage"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "tagId": "206",
+        "name": "Meta - LeadQualificado (chat)",
+        "type": "html",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "html",
+            "value": "<script>fbq('trackCustom','LeadQualificado',{pagina:'{{DLV - pagina}}'},{eventID:'{{DLV - eid}}'});</script>"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "supportDocumentWrite",
+            "value": "false"
+          }
+        ],
+        "firingTriggerId": [
+          "105"
+        ],
+        "tagFiringOption": "ONCE_PER_EVENT",
+        "setupTag": [
+          {
+            "tagName": "Meta - Pixel base (PageView)",
+            "stopOnSetupFailure": true
+          }
+        ],
+        "consentSettings": {
+          "consentStatus": "NEEDED",
+          "consentType": {
+            "type": "LIST",
+            "list": [
+              {
+                "type": "TEMPLATE",
+                "value": "ad_storage"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "trigger": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "101",
+        "name": "CE - Eventos do site (GA4)",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "MATCH_REGEX",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "^(whatsapp_click|curadoria_request|form_imovel|chat_contato|chat_handoff|chat_convite|chat_aberto|chat_mensagem|chat_audio_inicio|chat_ouvir)$"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "102",
+        "name": "CE - Consentimento aceito",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "consentimento_atualizado"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "103",
+        "name": "CE - whatsapp_click",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "whatsapp_click"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "104",
+        "name": "CE - Lead (formularios e chat)",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "MATCH_REGEX",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "^(curadoria_request|form_imovel|chat_contato)$"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "triggerId": "105",
+        "name": "CE - chat_handoff",
+        "type": "CUSTOM_EVENT",
+        "customEventFilter": [
+          {
+            "type": "EQUALS",
+            "parameter": [
+              {
+                "type": "TEMPLATE",
+                "key": "arg0",
+                "value": "{{_event}}"
+              },
+              {
+                "type": "TEMPLATE",
+                "key": "arg1",
+                "value": "chat_handoff"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "variable": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "1",
+        "name": "CONST - GA4 ID",
+        "type": "c",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "value",
+            "value": "G-JX7BF591JY"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "2",
+        "name": "CONST - Meta Pixel ID",
+        "type": "c",
+        "parameter": [
+          {
+            "type": "TEMPLATE",
+            "key": "value",
+            "value": "1625123092241726"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "3",
+        "name": "DLV - imovel",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "imovel"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "4",
+        "name": "DLV - ref",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "ref"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "5",
+        "name": "DLV - local",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "local"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "6",
+        "name": "DLV - origem_form",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "origem_form"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "7",
+        "name": "DLV - orcamento",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "orcamento"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "8",
+        "name": "DLV - prazo",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "prazo"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "9",
+        "name": "DLV - pagina",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "pagina"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "10",
+        "name": "DLV - via",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "via"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "11",
+        "name": "DLV - tipo",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "tipo"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "12",
+        "name": "DLV - gatilho",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "gatilho"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "13",
+        "name": "DLV - com_email",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "com_email"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "14",
+        "name": "DLV - consentimento",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "consentimento"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "15",
+        "name": "DLV - utm_source",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "utm_source"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "16",
+        "name": "DLV - utm_medium",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "utm_medium"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "17",
+        "name": "DLV - utm_campaign",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "utm_campaign"
+          }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "18",
+        "name": "DLV - eid",
+        "type": "v",
+        "parameter": [
+          {
+            "type": "INTEGER",
+            "key": "dataLayerVersion",
+            "value": "2"
+          },
+          {
+            "type": "BOOLEAN",
+            "key": "setDefaultValue",
+            "value": "false"
+          },
+          {
+            "type": "TEMPLATE",
+            "key": "name",
+            "value": "eid"
+          }
+        ]
+      }
+    ],
+    "builtInVariable": [
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "type": "EVENT",
+        "name": "Event"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "type": "PAGE_URL",
+        "name": "Page URL"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "type": "PAGE_PATH",
+        "name": "Page Path"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "type": "PAGE_HOSTNAME",
+        "name": "Page Hostname"
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "type": "REFERRER",
+        "name": "Referrer"
+      }
+    ]
+  }
+}

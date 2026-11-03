@@ -10,13 +10,15 @@ export default function Analise({ i }) {
   const fin = i.preco * (1 - ent / 100);
   const n = anos * 12, j = Math.pow(1 + taxa / 100, 1 / 12) - 1;
   const p1 = fin / n + fin * j; // primeira parcela SAC
-  const dif = ((i.precoM2 - i.refM2) / i.refM2) * 100;
+  const temRef = !!(i.precoM2 && i.refM2);
+  const dif = temRef ? ((i.precoM2 - i.refM2) / i.refM2) * 100 : 0;
   const pos = Math.max(4, Math.min(96, 50 + dif));
   return (
     <section className="analise" id="analise">
       <span className="eyebrow">Método Compra Segura</span>
       <h2>Análise de compra</h2>
       <p className="muted">Uma leitura rápida para comparar com calma. A análise completa, com documentação, eu entrego na curadoria.</p>
+      {temRef && <>
       <h3 style={{ marginTop: 24 }}>Preço por m²</h3>
       <div className="linhas">
         <div className="linha"><span>Este imóvel</span><b>{brl(i.precoM2)}/m²</b></div>
@@ -24,7 +26,8 @@ export default function Analise({ i }) {
       </div>
       <div className="barra"><i style={{ left: '50%', background: '#999' }} /><i style={{ left: pos + '%' }} /></div>
       <p className="nota">{Math.abs(dif) < 5 ? 'Em linha com a referência.' : dif < 0 ? `${Math.abs(dif).toFixed(0)}% abaixo da referência.` : `${dif.toFixed(0)}% acima da referência.`} Referência: mediana do preço por m² dos imóveis anunciados que acompanho {i.refAmostra ? `no bairro (${i.refAmostra} imóveis)` : 'na cidade, pois a amostra do bairro ainda é pequena'}, out/2026. Calculado sobre a área construída: terreno grande, acabamento e idade mudam o valor justo.{i.terreno && i.terreno > 2 * i.area ? ' Este imóvel tem terreno amplo, o que eleva o preço por m² construído.' : ''}</p>
-      <h3 style={{ marginTop: 28 }}>Custo total de aquisição</h3>
+      </>}
+      <h3 style={{ marginTop: temRef ? 28 : 24 }}>Custo total de aquisição</h3>
       <div className="linhas">
         <div className="linha"><span>Valor do imóvel</span><b>{brl(i.preco)}</b></div>
         <div className="linha"><span>ITBI (2%)</span><b>{brl(i.preco * ITBI)}</b></div>

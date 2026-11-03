@@ -8,6 +8,7 @@ function aplicar(v) {
   function gtag() { window.dataLayer.push(arguments); }
   const s = v === 'sim' ? 'granted' : 'denied';
   gtag('consent', 'update', { ad_storage: s, analytics_storage: s, ad_user_data: s, ad_personalization: s });
+  window.dataLayer.push({ event: 'consentimento_atualizado', consentimento: v });
 }
 export default function Cookies() {
   const [ver, setVer] = useState(false);

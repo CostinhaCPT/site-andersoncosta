@@ -6,12 +6,13 @@ export default function FormLead({ imovel, titulo = 'Receba sua curadoria gratui
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const enviar = (e) => {
     e.preventDefault();
-    evento(imovel ? 'form_imovel' : 'curadoria_request', { imovel: imovel?.codigo, orcamento: f.orcamento, prazo: f.prazo });
+    const contato = { nome: f.nome, telefone: f.whats };
+    evento(imovel ? 'form_imovel' : 'curadoria_request', { imovel: imovel?.codigo, orcamento: f.orcamento, prazo: f.prazo }, contato);
     const linhas = [
-      imovel ? `Olá, Anderson! Tenho interesse no imóvel ${imovel.codigo} (${imovel.titulo}).` : 'Olá, Anderson! Quero receber a curadoria gratuita.',
+      imovel ? `Olá, Anderson! Tenho interesse no imóvel "${imovel.titulo}" (ref. ${imovel.codigo}).` : 'Olá, Anderson! Quero receber a curadoria gratuita.',
       `Nome: ${f.nome}`, `WhatsApp: ${f.whats}`, `Cidade/bairro: ${f.local}`, `Orçamento: ${f.orcamento}`, `Tipo: ${f.tipo}`, `Objetivo: ${f.objetivo}`, `Prazo: ${f.prazo}`,
     ];
-    abrirWhats(linhas.join('\n'), { origem_form: imovel ? 'imovel' : 'curadoria' });
+    abrirWhats(linhas.join('\n'), { origem_form: imovel ? 'imovel' : 'curadoria', imovel: imovel?.codigo }, contato);
   };
   return (
     <form onSubmit={enviar} className={escuro ? '' : 'box'}>

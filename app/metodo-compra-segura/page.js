@@ -1,5 +1,5 @@
 import Link from 'next/link';
-export const metadata = { title: 'Método Compra Segura', description: 'Curadoria, análise de compra e vídeo honesto: como eu ajudo famílias a comprar o imóvel certo em Jaraguá do Sul.' };
+export const metadata = { title: 'Método Compra Segura', description: 'Curadoria, análise de compra e vídeo honesto: como eu ajudo famílias a comprar o imóvel certo em Jaraguá do Sul.' , alternates: { canonical: '/metodo-compra-segura/' } };
 export default function P() {
   return (<>
     <section className="hero escuro"><div className="wrap">

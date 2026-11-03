@@ -1,7 +1,7 @@
 [
  {
   "codigo": "AC-0001",
-  "slug": "ac-0001-geminado-3-quartos-tres-rios-do-norte-jaragua-do-sul",
+  "slug": "geminado-mobiliado-energia-solar-tres-rios-norte-jaragua-do-sul",
   "titulo": "Geminado mobiliado com energia solar no Três Rios do Norte",
   "resumo": "Pronto para morar, com móveis, energia solar e quintal com churrasqueira.",
   "descricao": "Um geminado de 122 m² pensado para quem quer mudar sem obra e sem comprar móveis: ele é vendido mobiliado, com iluminação em LED já instalada e energia solar funcionando, o que reduz a conta de luz desde o primeiro mês.\n\nSão 3 dormitórios, sendo 1 suíte, e um living que une sala de estar, jantar e cozinha. Nos fundos, o quintal com churrasqueira atende bem o fim de semana em família e ainda deixa espaço para uma piscina no futuro.",
@@ -82,8 +82,8 @@
  },
  {
   "codigo": "AC-0002",
-  "slug": "ac-0002-apartamento-3-quartos-ilha-da-figueira-jaragua-do-sul",
-  "titulo": "Apartamento com vista aberta na Ilha da Figueira",
+  "slug": "apartamento-3-quartos-vista-aberta-ilha-figueira-jaragua-do-sul",
+  "titulo": "Apartamento de 3 quartos com vista aberta na Ilha da Figueira",
   "resumo": "3 dormitórios, sacada com churrasqueira e 2 vagas, a 2 minutos do Centro.",
   "descricao": "Para a família que quer a praticidade de apartamento sem abrir mão de espaço: são 108 m² privativos, com 3 dormitórios (1 suíte), living integrado e sacada com churrasqueira voltada para uma vista aberta.\n\nO prédio fica em final de rua, o que traz silêncio, e está a cerca de 2 minutos do Centro. O condomínio tem elevador, salão de festas, playground e espaço pet. As 2 vagas ficam lado a lado, sem manobra.",
   "destaques": [
@@ -155,8 +155,8 @@
  },
  {
   "codigo": "AC-0003",
-  "slug": "ac-0003-apartamento-3-quartos-centro-jaragua-do-sul",
-  "titulo": "Apartamento novo no Centro, para fazer tudo a pé",
+  "slug": "apartamento-novo-3-quartos-centro-jaragua-do-sul",
+  "titulo": "Apartamento novo de 3 quartos no Centro, para fazer tudo a pé",
   "resumo": "3 dormitórios em residencial novo, com sacada gourmet e vista da cidade.",
   "descricao": "Morar no Centro de Jaraguá do Sul muda a rotina: mercado, escola, farmácia e academia ficam a uma caminhada. Este apartamento em residencial novo tem 3 dormitórios, com suíte ampla que comporta closet, e living integrado à cozinha.\n\nA sacada com churrasqueira tem boa posição solar e vista da cidade. O prédio conta com dois elevadores, salão de festas e brinquedoteca.",
   "destaques": [
@@ -220,8 +220,8 @@
  },
  {
   "codigo": "AC-0004",
-  "slug": "ac-0004-geminado-3-quartos-amizade-jaragua-do-sul",
-  "titulo": "Geminado de esquina no Amizade, com mais privacidade",
+  "slug": "geminado-esquina-lavabo-amizade-jaragua-do-sul",
+  "titulo": "Geminado de esquina com lavabo no Amizade",
   "resumo": "139 m², 3 dormitórios e espaço externo maior por ser unidade de esquina.",
   "descricao": "Ser a unidade de esquina faz diferença em um geminado: mais luz, mais privacidade e um espaço externo maior que o das unidades do meio. Aqui são 139 m² com 3 dormitórios (1 suíte), living integrado, lavabo e área com churrasqueira.\n\nO terreno ainda comporta piscina, para quem quer transformar o quintal em área de lazer.",
   "destaques": [
@@ -281,8 +281,8 @@
  },
  {
   "codigo": "AC-0005",
-  "slug": "ac-0005-geminado-3-quartos-ilha-da-figueira-jaragua-do-sul",
-  "titulo": "Geminado em região alta da Ilha da Figueira, perto da BR-280",
+  "slug": "geminado-quintal-2-vagas-ilha-figueira-jaragua-do-sul",
+  "titulo": "Geminado com quintal e 2 vagas na Ilha da Figueira",
   "resumo": "3 dormitórios, quintal privativo com churrasqueira e 2 vagas lado a lado.",
   "descricao": "Um geminado de 115 m² construídos em região alta da Ilha da Figueira, com acesso rápido à BR-280 e comércio do dia a dia por perto. A planta tem 3 dormitórios (1 suíte) e living integrado.\n\nNos fundos, um quintal privativo de cerca de 20 m² com churrasqueira. As 2 vagas ficam lado a lado.",
   "destaques": [
@@ -347,8 +347,8 @@
  },
  {
   "codigo": "AC-0006",
-  "slug": "ac-0006-geminado-3-quartos-tres-rios-do-norte-jaragua-do-sul",
-  "titulo": "Geminado com quintal amplo no Três Rios do Norte",
+  "slug": "geminado-quintal-piscina-tres-rios-norte-jaragua-do-sul",
+  "titulo": "Geminado com quintal para piscina no Três Rios do Norte",
   "resumo": "149 m², 3 dormitórios e um quintal que comporta área de lazer ou piscina.",
   "descricao": "O ponto forte deste geminado é o quintal: amplo, nos fundos, com espaço para uma área de lazer ou piscina no futuro. A casa tem 149 m², 3 dormitórios (1 suíte) e living integrado com boa distribuição.\n\nUma opção para a família que precisa de área externa para crianças ou pets sem pagar o preço de uma casa isolada.",
   "destaques": [
@@ -421,13 +421,13 @@
  },
  {
   "codigo": "AC-0007",
-  "slug": "ac-0007-geminado-3-quartos-amizade-jaragua-do-sul",
-  "titulo": "Geminado duplex com garagem fechada no Amizade",
-  "resumo": "Bom padrão de acabamento, 3 dormitórios e garagem fechada para 2 carros.",
-  "descricao": "Duplex de 137 m² no Amizade, com acabamento de bom padrão e ambientes integrados no térreo. No andar de cima, 3 dormitórios (1 suíte).\n\nA garagem é fechada, para 2 carros lado a lado, e o quintal tem espaço preparado para pergolado e jacuzzi.",
+  "slug": "geminado-duplex-garagem-fechada-2-carros-amizade-jaragua-do-sul",
+  "titulo": "Geminado duplex com garagem fechada para 2 carros no Amizade",
+  "resumo": "Duplex com 3 dormitórios e garagem fechada para 2 carros.",
+  "descricao": "Duplex de 137 m² no Amizade, com ambientes integrados no térreo. No andar de cima, 3 dormitórios (1 suíte).\n\nA garagem é fechada, para 2 carros lado a lado, e o quintal tem espaço preparado para pergolado e jacuzzi.",
   "destaques": [
    "Garagem fechada para 2 carros",
-   "Acabamento de bom padrão",
+   "Ambientes integrados no térreo",
    "Quintal para pergolado e jacuzzi"
   ],
   "atencao": [
@@ -486,13 +486,13 @@
  },
  {
   "codigo": "AC-0008",
-  "slug": "ac-0008-geminado-3-quartos-tres-rios-do-norte-jaragua-do-sul",
-  "titulo": "Geminado duplex de alto padrão no Três Rios do Norte",
+  "slug": "geminado-duplex-suite-closet-tres-rios-norte-jaragua-do-sul",
+  "titulo": "Geminado duplex com suíte e closet no Três Rios do Norte",
   "resumo": "Suíte com closet, escada de destaque e quintal com passagem lateral.",
-  "descricao": "Projeto moderno, com muita luz natural e acabamento de alto padrão. O living é todo integrado e a escada é um dos destaques visuais da casa. No pavimento superior, 3 dormitórios, sendo 1 suíte com closet.\n\nO quintal tem passagem lateral, o que facilita manutenção e ventilação, e espaço para piscina ou área de festas.",
+  "descricao": "Projeto com muita luz natural. O living é todo integrado e a escada é um dos destaques visuais da casa. No pavimento superior, 3 dormitórios, sendo 1 suíte com closet.\n\nO quintal tem passagem lateral, o que facilita manutenção e ventilação, e espaço para piscina ou área de festas.",
   "destaques": [
    "Suíte com closet",
-   "Alto padrão de acabamento",
+   "Muita luz natural",
    "Passagem lateral",
    "Espaço para piscina"
   ],
@@ -556,10 +556,10 @@
  },
  {
   "codigo": "AC-0009",
-  "slug": "ac-0009-casa-3-quartos-nereu-ramos-jaragua-do-sul",
-  "titulo": "Casa com terreno de 361 m² no Nereu Ramos",
+  "slug": "casa-hidromassagem-fogao-lenha-nereu-ramos-jaragua-do-sul",
+  "titulo": "Casa com hidromassagem e fogão a lenha no Nereu Ramos",
   "resumo": "Suíte com hidromassagem, área de festas com fogão a lenha e aquecimento solar.",
-  "descricao": "Casa de 164 m² em terreno de 361 m², para quem quer espaço de casa de verdade. A suíte tem hidromassagem e há mais 2 dormitórios, além de sala de estar, jantar e cozinha integradas.\n\nA área de festas tem churrasqueira e fogão a lenha, e a água é aquecida por placa solar.",
+  "descricao": "Casa de 164 m² em terreno de 361 m², para quem precisa de espaço externo. A suíte tem hidromassagem e há mais 2 dormitórios, além de sala de estar, jantar e cozinha integradas.\n\nA área de festas tem churrasqueira e fogão a lenha, e a água é aquecida por placa solar.",
   "destaques": [
    "Terreno de 361 m²",
    "Suíte com hidromassagem",
@@ -615,10 +615,10 @@
  },
  {
   "codigo": "AC-0010",
-  "slug": "ac-0010-casa-3-quartos-tres-rios-do-sul-jaragua-do-sul",
-  "titulo": "Casa térrea com terreno de 383 m² no Três Rios do Sul",
+  "slug": "casa-terrea-area-festas-tres-rios-sul-jaragua-do-sul",
+  "titulo": "Casa térrea com área de festas no Três Rios do Sul",
   "resumo": "Tudo em um pavimento, área de festas ampla e 8 minutos do Centro.",
-  "descricao": "Casa térrea de 144 m² em terreno de 383 m², sem escadas, o que agrada famílias com crianças pequenas ou pais idosos. São 3 dormitórios (1 suíte), cozinha e sala integradas e uma área de festas ampla com churrasqueira.\n\nRua tranquila, com boa vizinhança, a cerca de 8 minutos do Centro.",
+  "descricao": "Casa térrea de 144 m² em terreno de 383 m², sem escadas, o que agrada famílias com crianças pequenas ou pais idosos. São 3 dormitórios (1 suíte), cozinha e sala integradas e uma área de festas ampla com churrasqueira.\n\nRua tranquila, a cerca de 8 minutos do Centro.",
   "destaques": [
    "Casa térrea",
    "Terreno de 383 m²",
@@ -691,14 +691,14 @@
  },
  {
   "codigo": "AC-0011",
-  "slug": "ac-0011-geminado-3-quartos-amizade-jaragua-do-sul",
-  "titulo": "Casa com quintal grande no Amizade",
+  "slug": "geminado-quintal-grande-amizade-jaragua-do-sul",
+  "titulo": "Geminado com quintal grande no Amizade",
   "resumo": "182 m² de terreno, 3 dormitórios e muito espaço externo para a família.",
-  "descricao": "No Amizade, um dos bairros mais procurados por famílias, esta casa de 141 m² se destaca pelo quintal amplo, que dá liberdade para criar área de lazer ou piscina.\n\nSão 3 dormitórios (1 suíte) e um living espaçoso e integrado.",
+  "descricao": "No Amizade, esta casa de 141 m² se destaca pelo quintal amplo, que dá liberdade para criar área de lazer ou piscina.\n\nSão 3 dormitórios (1 suíte) e um living integrado.",
   "destaques": [
    "Bairro Amizade",
    "Quintal amplo",
-   "Living espaçoso",
+   "Living integrado",
    "2 vagas"
   ],
   "atencao": [
@@ -765,10 +765,10 @@
  },
  {
   "codigo": "AC-0012",
-  "slug": "ac-0012-geminado-3-quartos-centro-jaragua-do-sul",
-  "titulo": "Casa no Centro, perto de tudo",
-  "resumo": "140 m² e 3 dormitórios em uma das regiões mais valorizadas da cidade.",
-  "descricao": "Casas no Centro de Jaraguá do Sul são raras. Esta tem 140 m², 3 dormitórios (1 suíte) e ambientes bem distribuídos, com mercado, escolas e serviços a poucos minutos.\n\nPara quem quer a rotina prática do Centro com a privacidade de uma casa.",
+  "slug": "geminado-3-quartos-centro-jaragua-do-sul",
+  "titulo": "Geminado de 3 quartos no Centro de Jaraguá do Sul",
+  "resumo": "140 m² e 3 dormitórios no Centro de Jaraguá do Sul.",
+  "descricao": "Esta casa no Centro tem 140 m², 3 dormitórios (1 suíte) e ambientes bem distribuídos, com mercado, escolas e serviços a poucos minutos.\n\nPara quem quer a rotina prática do Centro com a privacidade de uma casa.",
   "destaques": [
    "Localização central",
    "Casa, não apartamento",
@@ -828,10 +828,10 @@
  },
  {
   "codigo": "AC-0013",
-  "slug": "ac-0013-casa-3-quartos-ilha-da-figueira-jaragua-do-sul",
-  "titulo": "Casa de 228 m² em terreno de 423 m² na Ilha da Figueira",
+  "slug": "casa-228m2-area-festas-ilha-figueira-jaragua-do-sul",
+  "titulo": "Casa de 228 m² com área de festas na Ilha da Figueira",
   "resumo": "Área de festas, depósito e muito terreno, a minutos do Centro.",
-  "descricao": "Muita casa pelo preço: 228 m² construídos em terreno de 423 m². São 3 dormitórios (1 suíte), sala, cozinha, área de serviço, depósito e uma área de festas que recebe a família toda.\n\nO terreno grande abre possibilidades de ampliação, jardim ou piscina.",
+  "descricao": "A casa tem 228 m² construídos em terreno de 423 m². São 3 dormitórios (1 suíte), sala, cozinha, área de serviço, depósito e uma área de festas que recebe a família toda.\n\nO terreno grande abre possibilidades de ampliação, jardim ou piscina.",
   "destaques": [
    "228 m² construídos",
    "Terreno de 423 m²",
@@ -899,14 +899,14 @@
  },
  {
   "codigo": "AC-0014",
-  "slug": "ac-0014-geminado-3-quartos-amizade-jaragua-do-sul",
-  "titulo": "Geminado duplex com piscina privativa",
+  "slug": "geminado-duplex-piscina-privativa-amizade-jaragua-do-sul",
+  "titulo": "Geminado duplex com piscina privativa no Amizade",
   "resumo": "165 m², suíte com sacada e piscina própria, perto do Rancho Bom.",
-  "descricao": "Geminado duplex de 165 m² com piscina privativa, algo raro nessa faixa de preço. Acabamento caprichado, 3 dormitórios, sendo 1 suíte com sacada.\n\nA garagem comporta 2 carros lado a lado e a localização é próxima ao Rancho Bom.",
+  "descricao": "Geminado duplex de 165 m² com piscina privativa. São 3 dormitórios, sendo 1 suíte com sacada.\n\nA garagem comporta 2 carros lado a lado e a localização é próxima ao Rancho Bom.",
   "destaques": [
    "Piscina privativa",
    "Suíte com sacada",
-   "Acabamento caprichado",
+   "165 m² em dois pavimentos",
    "2 vagas lado a lado"
   ],
   "atencao": [
@@ -962,8 +962,8 @@
  },
  {
   "codigo": "AC-0015",
-  "slug": "ac-0015-casa-3-quartos-ilha-da-figueira-jaragua-do-sul",
-  "titulo": "Casa moderna com terreno de 373 m² na Ilha da Figueira",
+  "slug": "casa-energia-solar-quintal-piscina-ilha-figueira-jaragua-do-sul",
+  "titulo": "Casa com energia solar e quintal para piscina na Ilha da Figueira",
   "resumo": "Energia solar, quintal com gramado e preparação para piscina, a 2 minutos do Centro.",
   "descricao": "Casa moderna de 143 m² em terreno de 373 m², a cerca de 2 minutos do Centro. São 3 dormitórios (1 suíte), living integrado e garagem para 2 carros.\n\nO quintal com gramado já está preparado para piscina, e a casa tem energia solar instalada.",
   "destaques": [
@@ -1026,8 +1026,8 @@
  },
  {
   "codigo": "AC-0016",
-  "slug": "ac-0016-apartamento-3-quartos-centro-jaragua-do-sul",
-  "titulo": "Apartamento com 3 suítes no Centro",
+  "slug": "apartamento-3-suites-sol-manha-centro-jaragua-do-sul",
+  "titulo": "Apartamento com 3 suítes e sol da manhã no Centro",
   "resumo": "Três suítes, sacada gourmet com sol da manhã e 2 vagas lado a lado.",
   "descricao": "Apartamento de cerca de 132 m² privativos no Centro, com 3 suítes: cada um tem seu banheiro, o que faz diferença com filhos adolescentes ou visitas frequentes.\n\nO living é integrado à churrasqueira gourmet, com sol da manhã e vista aberta. As 2 vagas ficam lado a lado.",
   "destaques": [
@@ -1088,8 +1088,8 @@
  },
  {
   "codigo": "AC-0017",
-  "slug": "ac-0017-casa-3-quartos-amizade-jaragua-do-sul",
-  "titulo": "Casa térrea com escritório e terreno de 420 m² no Amizade",
+  "slug": "casa-terrea-escritorio-suite-closet-amizade-jaragua-do-sul",
+  "titulo": "Casa térrea com escritório e suíte com closet no Amizade",
   "resumo": "Suíte com closet e hidromassagem, pé-direito alto e área de festas reservada.",
   "descricao": "Casa térrea de 220 m² em terreno de 420 m², em rua tranquila do Amizade. A suíte tem closet e hidromassagem, e há mais 2 dormitórios e um escritório, útil para quem trabalha de casa.\n\nA sala de jantar tem pé-direito alto, a cozinha tem móveis sob medida e a área de festas é espaçosa e reservada.",
   "destaques": [
@@ -1149,7 +1149,7 @@
  },
  {
   "codigo": "AC-0018",
-  "slug": "ac-0018-casa-3-quartos-tres-rios-do-norte-jaragua-do-sul",
+  "slug": "casa-nova-pe-direito-alto-tres-rios-norte-jaragua-do-sul",
   "titulo": "Casa nova com pé-direito alto no Três Rios do Norte",
   "resumo": "Entregue parcialmente mobiliada, com suíte ampla e espaço para piscina.",
   "descricao": "Casa nova de 189 m² em terreno de 337 m², em loteamento tranquilo do Três Rios do Norte. O pé-direito alto e a boa iluminação natural deixam os ambientes amplos.\n\nSão 3 dormitórios, com suíte espaçosa preparada para closet, área de festas com churrasqueira, lavabo e garagem para 2 carros lado a lado. Será entregue parcialmente mobiliada.",
@@ -1223,10 +1223,10 @@
  },
  {
   "codigo": "AC-0019",
-  "slug": "ac-0019-casa-3-quartos-vila-nova-jaragua-do-sul",
-  "titulo": "Casa térrea em terreno de 507 m² na Vila Nova",
+  "slug": "casa-terrea-2-suites-rua-sem-saida-vila-nova-jaragua-do-sul",
+  "titulo": "Casa térrea com 2 suítes em rua sem saída na Vila Nova",
   "resumo": "2 suítes, rua sem saída e a 2 minutos do Centro.",
-  "descricao": "Raro na Vila Nova: casa térrea de 179 m² em terreno de 507 m², numa rua sem saída e silenciosa, a cerca de 2 minutos do Centro. São 2 suítes e mais 1 quarto, sala com pé-direito alto e cozinha com móveis sob medida.\n\nA área de festas com churrasqueira já tem estrutura para um segundo piso, e o terreno tem gramado, jardim e espaço para piscina.",
+  "descricao": "Casa térrea de 179 m² na Vila Nova, em terreno de 507 m², numa rua sem saída e silenciosa, a cerca de 2 minutos do Centro. São 2 suítes e mais 1 quarto, sala com pé-direito alto e cozinha com móveis sob medida.\n\nA área de festas com churrasqueira já tem estrutura para um segundo piso, e o terreno tem gramado, jardim e espaço para piscina.",
   "destaques": [
    "Terreno de 507 m²",
    "Rua sem saída",
@@ -1287,7 +1287,7 @@
  },
  {
   "codigo": "AC-0020",
-  "slug": "ac-0020-casa-3-quartos-tres-rios-do-norte-jaragua-do-sul",
+  "slug": "casa-piscina-vista-verde-tres-rios-norte-jaragua-do-sul",
   "titulo": "Casa com piscina e vista verde no Três Rios do Norte",
   "resumo": "274 m², porteira fechada, suíte master com hidromassagem.",
   "descricao": "Casa de 274 m² vendida porteira fechada, pronta para morar. No térreo, sala ampla, cozinha integrada, churrasqueira e piscina com vista para área verde.\n\nNo pavimento superior, suíte master com hidromassagem e mais 2 dormitórios.",

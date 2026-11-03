@@ -20,7 +20,7 @@ for s in src:
     if s['codigo_ac']=='AC-0014': s['bairro']='amizade'  # confirmado pelas fotos originais (Ninho Verde)
     b=s['bairro'];g='apto' if s['tipo']=='apartamento' else 'casa';amostra=pm.get((b,g),[])
     ref=statistics.median(amostra) if len(amostra)>=4 else statistics.median(pm[('*',g)])
-    slug=f"{s['codigo_ac'].lower()}-{s['tipo'].replace('casa-geminada','geminado')}-{f.get('Quartos')}-quartos-{b}-jaragua-do-sul"
+    slug=c.get('slug') or f"{s['codigo_ac'].lower()}-{s['tipo'].replace('casa-geminada','geminado')}-{f.get('Quartos')}-quartos-{b}-jaragua-do-sul"
     out.append(dict(codigo=s['codigo_ac'],slug=slug,titulo=c['titulo'],resumo=c['resumo'],descricao=c['descricao'],destaques=c['destaques'],atencao=c['atencao'],
       tipo=TP[s['tipo']],tipoSlug=s['tipo'],bairro=NB.get(b,b),bairroSlug=b,cidade='Jaraguá do Sul',cidadeSlug='jaragua-do-sul',preco=int(s['preco']),precoVisivel=True,
       area=area,terreno=terr if terr!=area else None,quartos=n(f.get('Quartos')),suites=n(f.get('Suítes')),banheiros=n(f.get('Banheiros')),vagas=n(f.get('Vagas')),

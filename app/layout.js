@@ -2,7 +2,8 @@ import './globals.css';
 import Topo from '@/components/Topo';
 import Rodape from '@/components/Rodape';
 import Cookies from '@/components/Cookies';
-import { WhatsFixo } from '@/components/Whats';
+import Chat from '@/components/Chat';
+import Moldura from '@/components/Moldura';
 import { SITE } from '@/lib/site';
 export const metadata = {
   metadataBase: new URL(SITE.dominio),
@@ -18,15 +19,12 @@ export default function RootLayout({ children }) {
     <html lang="pt-BR">
       <head>
         <script dangerouslySetInnerHTML={{ __html: consentDefault }} />
-        {SITE.gtmId && <script dangerouslySetInnerHTML={{ __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${SITE.gtmId}');` }} />}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'RealEstateAgent', name: SITE.marca, url: SITE.dominio, telephone: '+' + SITE.whatsapp, areaServed: ['Jaraguá do Sul', 'Guaramirim', 'Schroeder', 'Corupá', 'Massaranduba'], identifier: { '@type': 'PropertyValue', propertyID: 'CRECI', value: SITE.creci } }) }} />
+        {SITE.gtmId && <script dangerouslySetInnerHTML={{ __html: `if(location.pathname.indexOf('/admin')!==0)(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${SITE.gtmId}');` }} />}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'RealEstateAgent', name: SITE.marca, url: SITE.dominio, telephone: '+' + SITE.whatsapp, email: SITE.email, areaServed: ['Jaraguá do Sul', 'Guaramirim', 'Schroeder', 'Corupá', 'Massaranduba'], identifier: { '@type': 'PropertyValue', propertyID: 'CRECI', value: SITE.creci } }) }} />
       </head>
       <body>
-        <Topo />
-        <main>{children}</main>
-        <Rodape />
-        <WhatsFixo />
-        <Cookies />
+        {SITE.gtmId && <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${SITE.gtmId}`} height="0" width="0" style={{ display: 'none', visibility: 'hidden' }} /></noscript>}
+        <Moldura topo={<Topo />} rodape={<Rodape />} extras={<><Chat /><Cookies /></>}>{children}</Moldura>
       </body>
     </html>
   );

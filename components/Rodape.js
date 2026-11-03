@@ -18,12 +18,13 @@ export default function Rodape() {
           <div>
             <span className="eyebrow">Atendimento</span>
             <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.telefoneVisivel}</a>
+            <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
             <Link href="/curadoria/">Curadoria gratuita</Link>
             <Link href="/anuncie-seu-imovel/">Quero vender meu imóvel</Link>
             <Link href="/politica-de-privacidade/">Política de privacidade</Link>
           </div>
         </div>
-        <div className="base"><span>© {new Date().getFullYear()} {SITE.marca}. {SITE.creci}.</span><span>Imagens e valores sujeitos a alteração sem aviso prévio.</span></div>
+        <div className="base"><span>© {new Date().getFullYear()} Anderson Costa, Corretor de Imóveis, {SITE.creci}.</span><span>Imagens e valores sujeitos a alteração sem aviso prévio.</span></div>
       </div>
     </footer>
   );

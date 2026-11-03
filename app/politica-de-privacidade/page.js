@@ -1,5 +1,5 @@
 import { SITE } from '@/lib/site';
-export const metadata = { title: 'Política de privacidade' };
+export const metadata = { title: 'Política de privacidade' , alternates: { canonical: '/politica-de-privacidade/' } };
 export default function P() {
   return (
     <section className="sec"><div className="wrap texto-legal" style={{ maxWidth: 780 }}>
@@ -10,6 +10,8 @@ export default function P() {
       <p>Os dados que você informa nos formulários (nome, WhatsApp, cidade ou bairro, faixa de orçamento, tipo de imóvel, objetivo e prazo) e, se você autorizar no aviso de cookies, dados de navegação como páginas visitadas e a campanha de anúncio que trouxe você ao site.</p>
       <h2>Para que uso</h2>
       <p>Para atender o seu pedido, enviar imóveis compatíveis, agendar visitas e medir quais anúncios funcionam. Não vendo nem compartilho seus dados com terceiros para fins de marketing. Quando um imóvel é de parceiro, compartilho apenas o necessário para a visita ou negociação.</p>
+      <h2>Chat do site</h2>
+      <p>O chat do site é atendido por uma assistente virtual com inteligência artificial, que conversa em meu nome até eu assumir pessoalmente. As mensagens trocadas ficam registradas para dar continuidade ao seu atendimento. Se você enviar um áudio, ele é transcrito em texto; se enviar uma foto, ela é analisada para encontrar imóveis parecidos. Áudios e fotos ficam guardados em área privada e são apagados automaticamente após 90 dias. Para funcionar, o texto da conversa é processado por fornecedores de tecnologia (Anthropic, para gerar as respostas, OpenAI, para a busca de imóveis, Supabase, para o armazenamento, e Resend, para me avisar por e-mail), sem uso para outros fins. O endereço de IP é guardado apenas em forma cifrada, para evitar abuso do chat.</p>
       <h2>Cookies</h2>
       <p>Uso ferramentas do Google e da Meta para medir o desempenho do site e dos anúncios. Elas só são ativadas se você aceitar no aviso de cookies. Você pode mudar a escolha limpando os dados do site no seu navegador.</p>
       <h2>Por quanto tempo guardo</h2>

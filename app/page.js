@@ -3,6 +3,7 @@ import Card from '@/components/Card';
 import FormLead from '@/components/FormLead';
 import { imoveis, bairros } from '@/lib/imoveis';
 import { SITE } from '@/lib/site';
+export const metadata = { alternates: { canonical: '/' } };
 export default function Home() {
   const dest = imoveis.filter((i) => i.destaque).concat(imoveis.filter((i) => !i.destaque)).slice(0, 6);
   return (
@@ -12,7 +13,7 @@ export default function Home() {
         <div className="wrap">
           <span className="eyebrow">Jaraguá do Sul e região · {SITE.creci}</span>
           <h1>Os imóveis certos para a sua família, sem dezenas de links</h1>
-          <p className="lead">Você me conta o que precisa. Eu seleciono os 3 imóveis que fazem sentido, com análise de preço, custo total de compra e um vídeo honesto de cada um, com pontos fortes e pontos de atenção.</p>
+          <p className="lead">Você me conta o que a sua família precisa. Eu seleciono os 3 imóveis de Jaraguá do Sul e região que fazem sentido, com análise de preço, custo total da compra e um vídeo honesto de cada um, com o que ele tem de bom e o que merece atenção.</p>
           <div className="acoes">
             <Link href="/curadoria/" className="btn btn-claro">Receba sua curadoria gratuita</Link>
             <Link href="/imoveis/" className="btn btn-borda">Ver imóveis</Link>
@@ -20,10 +21,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="sec escuro" style={{ paddingTop: 0 }}>
+      <section className="sec escuro sec-metodo">
         <div className="wrap">
           <span className="eyebrow">Método Compra Segura</span>
-          <h2>Comprar bem é comparar com clareza</h2>
+          <h2>A maioria dos anúncios mostra só o lado bom. Eu te mostro os dois.</h2>
+          <p className="muted" style={{ maxWidth: 640 }}>São três entregas, na mesma ordem para todo cliente, para você decidir com números e não só com fotos.</p>
           <div className="passos">
             <div className="passo"><span className="n">01</span><h3>Curadoria</h3><p className="muted">Os 3 imóveis que combinam com a sua família, o seu orçamento e a sua rotina. Não uma lista sem fim.</p></div>
             <div className="passo"><span className="n">02</span><h3>Análise de compra</h3><p className="muted">Preço por m² comparado ao bairro, ITBI, escritura e registro, simulação de financiamento e checklist de documentos.</p></div>
@@ -55,7 +57,7 @@ export default function Home() {
           <div>
             <span className="eyebrow">Quem atende você</span>
             <h2>Anderson Costa</h2>
-            <p className="muted">São quase 20 anos em marketing e vendas antes do mercado imobiliário. Trago essa experiência para o que importa na compra: entender o que a sua família precisa, comparar com números e ser transparente sobre cada imóvel.</p>
+            <p className="muted">Passei quase 20 anos em marketing e vendas antes de ser corretor. Sei como um anúncio é montado para parecer melhor do que é, e uso isso a seu favor: entendo o que a sua família precisa, comparo com números e digo o que cada imóvel tem de bom e de ruim.</p>
             <p><i>“{SITE.frase}”</i></p>
             <Link href="/sobre/" className="btn btn-borda" style={{ color: '#fff' }}>Conheça minha história</Link>
           </div>
@@ -68,7 +70,7 @@ export default function Home() {
           <div>
             <span className="eyebrow">Curadoria gratuita</span>
             <h2>Conte o que você procura</h2>
-            <p className="muted">Em até um dia útil eu volto com os imóveis que fazem sentido, inclusive opções que não estão no site. Financiamento e permuta a gente conversa no WhatsApp.</p>
+            <p className="muted">Eu te chamo no WhatsApp e, em até 48 horas, volto com os imóveis que fazem sentido, inclusive opções que não estão no site. Financiamento e permuta a gente conversa por lá.</p>
           </div>
           <FormLead titulo="" />
         </div>

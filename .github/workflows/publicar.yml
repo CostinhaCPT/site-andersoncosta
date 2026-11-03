@@ -1,0 +1,69 @@
+# Builds the static site with the listings saved in the admin (Supabase)
+# and pushes the result to the "publicado" branch, which Hostinger deploys.
+name: Publicar site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # every 30 min, 7h to 22h in Brasília (UTC-3)
+    - cron: '*/30 10-23 * * *'
+    - cron: '*/30 0-1 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ler imóveis do Supabase
+        id: dados
+        env:
+          CI: '1'
+        run: |
+          node scripts/puxar-imoveis.mjs
+          VERSAO=$( { sha256sum data/imoveis.json; git rev-parse HEAD; } | sha256sum | cut -c1-16 )
+          echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
+          ATUAL=""
+          if git fetch --depth=1 origin publicado 2>/dev/null; then ATUAL=$(git show origin/publicado:versao.txt 2>/dev/null || true); fi
+          if [ "$ATUAL" = "$VERSAO" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "publicar=nao" >> "$GITHUB_OUTPUT"; echo "Nada mudou desde a última publicação."
+          else
+            echo "publicar=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.dados.outputs.publicar == 'sim'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build
+        if: steps.dados.outputs.publicar == 'sim'
+        env:
+          CI: '1'
+        run: |
+          npm ci
+          npm run build
+          echo "${{ steps.dados.outputs.versao }}" > out/versao.txt
+
+      - name: Enviar para a branch publicado
+        if: steps.dados.outputs.publicar == 'sim'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: publicado
+          publish_dir: ./out
+          force_orphan: true
+          enable_jekyll: true
+          user_name: 'site-bot'
+          user_email: 'site-bot@users.noreply.github.com'
+          commit_message: 'chore: publish site'

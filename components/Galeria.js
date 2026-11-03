@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { miniatura } from '@/lib/format';
 export default function Galeria({ fotos, titulo }) {
   const [i, setI] = useState(null);
   useEffect(() => {
@@ -11,7 +12,7 @@ export default function Galeria({ fotos, titulo }) {
     <>
       <div className="galeria">
         {fotos.slice(0, 3).map((f, n) => (
-          <button key={f} style={{ backgroundImage: `url(${n === 0 ? f : f.replace('.webp', '-p.webp')})` }} onClick={() => setI(n)} aria-label={`Abrir foto ${n + 1} de ${titulo}`}>
+          <button key={f} style={{ backgroundImage: `url(${n === 0 ? f : miniatura(f)})` }} onClick={() => setI(n)} aria-label={`Abrir foto ${n + 1} de ${titulo}`}>
             {n === (fotos.length > 2 ? 2 : 0) && <span className="mais">Ver as {fotos.length} fotos</span>}
           </button>
         ))}

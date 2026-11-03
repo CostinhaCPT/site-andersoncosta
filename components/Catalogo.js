@@ -14,17 +14,18 @@ export default function Catalogo({ lista, inicial = {} }) {
     window.history.replaceState(null, '', p.toString() ? '?' + p : window.location.pathname);
   };
   const bairros = [...new Map(lista.map((i) => [i.bairroSlug, i.bairro])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  const tipos = [...new Map(lista.map((i) => [i.tipoSlug, i.tipo])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   const res = useMemo(() => lista
     .filter((i) => !f.bairro || i.bairroSlug === f.bairro)
     .filter((i) => !f.tipo || i.tipoSlug === f.tipo)
     .filter((i) => !f.faixa || i.faixa === f.faixa)
     .filter((i) => !f.quartos || i.quartos >= +f.quartos)
-    .sort((a, b) => (f.ordem === 'maior' ? b.preco - a.preco : a.preco - b.preco)), [f, lista]);
+    .sort((a, b) => (f.ordem === 'maior' ? (b.preco || 0) - (a.preco || 0) : (a.preco || 0) - (b.preco || 0))), [f, lista]);
   return (
     <>
       <div className="filtros">
         <select value={f.bairro} onChange={set('bairro')} aria-label="Bairro"><option value="">Todos os bairros</option>{bairros.map(([s, n]) => <option key={s} value={s}>{n}</option>)}</select>
-        <select value={f.tipo} onChange={set('tipo')} aria-label="Tipo"><option value="">Todos os tipos</option><option value="casa">Casa</option><option value="casa-geminada">Geminado</option><option value="apartamento">Apartamento</option></select>
+        <select value={f.tipo} onChange={set('tipo')} aria-label="Tipo"><option value="">Todos os tipos</option>{tipos.map(([s, n]) => <option key={s} value={s}>{n}</option>)}</select>
         <select value={f.faixa} onChange={set('faixa')} aria-label="Faixa de preço"><option value="">Qualquer valor</option><option value="ate-850">Até R$ 850 mil</option><option value="850-1000">R$ 850 mil a 1 milhão</option><option value="acima-1000">Acima de R$ 1 milhão</option></select>
         <select value={f.quartos} onChange={set('quartos')} aria-label="Quartos"><option value="">Quartos</option><option value="2">2 ou mais</option><option value="3">3 ou mais</option><option value="4">4 ou mais</option></select>
         <select value={f.ordem} onChange={set('ordem')} aria-label="Ordenar"><option value="menor">Menor preço</option><option value="maior">Maior preço</option></select>
