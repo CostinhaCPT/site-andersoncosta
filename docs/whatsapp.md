@@ -90,3 +90,10 @@ No app da Meta, Webhooks, objeto **Instagram**: URL `https://ngvnlaxtstjqmsoilln
 - Nada é publicado sem a aprovação do Anderson (botão "Aprovar e agendar" ou "Publicar agora").
 - Anúncios são criados sempre pausados; só gastam depois de "Ativar".
 - Vídeos publicados são apagados do armazenamento depois de publicados (o plano grátis tem 1 GB).
+
+## Música nos posts
+
+A API da Meta não permite que programas de fora coloquem música da biblioteca do Instagram em posts e Reels (só o áudio que já vem dentro do vídeo).
+Por isso o Estúdio tem dois modos:
+- **Com música (padrão):** a peça fica pronta e agendada. No horário chega uma notificação no iPhone; você toca, salva as imagens ou o vídeo, copia a legenda, abre o Instagram, escolhe a música e posta. Depois toca em "Já postei". As métricas desse post são ligadas sozinhas pela legenda.
+- **Sem música:** a Meta publica sozinha no horário.

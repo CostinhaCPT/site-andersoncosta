@@ -1,200 +1,109 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { sb, BUCKET, urlPublica } from '@/lib/admin/cliente';
-import { SITE } from '@/lib/site';
-import { dataHora, deLocal } from '@/lib/admin/ia';
+import { sb } from '@/lib/admin/cliente';
+import { dataHora } from '@/lib/admin/ia';
 import { brl } from '@/lib/admin/crm';
+import { desenharCapa, desenharFim, desenharFoto, fichaPadrao } from '@/lib/admin/arte';
+import EditorReels from './EditorReels';
+import { meta, enviarArquivo, salvarCriativo } from '@/lib/admin/estudio';
 
-// ------------------------------------------------------------------ chamada à função "meta"
-async function meta(body) {
-  const { data: { session } } = await sb().auth.getSession();
-  const r = await fetch(`${SITE.supabaseUrl}/functions/v1/meta`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}`, apikey: SITE.supabaseKey }, body: JSON.stringify(body),
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok || j.erro) throw new Error(j.erro || 'falha');
-  return j;
-}
-
-const TIPOS = { carrossel: ['Carrossel', 1080, 1350], post: ['Post', 1080, 1350], story: ['Story', 1080, 1920], reel: ['Reels (vídeo)', 1080, 1920] };
-const STATUS = { rascunho: 'Rascunho', agendado: 'Agendado', publicando: 'Publicando', publicado: 'Publicado', erro: 'Erro', arquivado: 'Arquivado' };
-const absoluta = (u) => (/^https?:/.test(u) ? u : `${window.location.origin}${u.startsWith('/') ? '' : '/'}${u}`);
+const TIPOS = { carrossel: ['Carrossel', 1080, 1350], post: ['Post', 1080, 1350], story: ['Story', 1080, 1920], reel: ['Reels (vídeo pronto)', 1080, 1920] };
+const STATUS = { rascunho: 'Rascunho', agendado: 'Agendado', aguardando: 'Esperando você postar', publicando: 'Publicando', publicado: 'Publicado', erro: 'Erro', arquivado: 'Arquivado' };
+const ROTULOS_PADRAO = (im) => (/apart/i.test(im?.tipo || '') ? 'Apartamento' : /terreno/i.test(im?.tipo || '') ? 'Terreno' : 'Casa');
 
 export default function Estudio() {
   const [sub, setSub] = useState('criar');
   const [conexao, setConexao] = useState(null);
   const [seguidores, setSeguidores] = useState(null);
+  const [postar, setPostar] = useState(null);
   useEffect(() => {
     meta({ acao: 'status' }).then(setConexao).catch((e) => setConexao({ conectado: false, motivo: e.message }));
     sb().from('perfil_metricas').select('dia,dados').order('dia', { ascending: false }).limit(30).then(({ data }) => setSeguidores(data || []));
+    const id = new URLSearchParams(window.location.search).get('postar');
+    if (id) sb().from('criativos').select('*').eq('id', id).maybeSingle().then(({ data }) => data && setPostar(data));
   }, []);
   const hoje = seguidores?.[0]?.dados?.followers_count, antes = seguidores?.at(-1)?.dados?.followers_count;
+  if (postar) return <section className="adm-pagina"><Postar criativo={postar} aoFechar={() => { setPostar(null); setSub('agenda'); }} /></section>;
   return (
     <section className="adm-pagina adm-larga">
       <div className="adm-cabeca">
         <div>
           <h1>Estúdio</h1>
           <p className="adm-sub">
-            {!conexao ? 'Verificando a Meta…' : conexao.conectado ? `Conectado: @${conexao.instagram} e ${conexao.pagina}${conexao.anuncios ? ' · anúncios liberados' : ''}` : `Meta não conectada: ${conexao.motivo} Você ainda pode criar e baixar as peças.`}
+            {!conexao ? 'Verificando a Meta…' : conexao.conectado ? `Conectado: @${conexao.instagram} e ${conexao.pagina}${conexao.anuncios ? ' · anúncios liberados' : ''}` : `Meta ainda não conectada. Dá para criar, agendar e postar com música pelo app do Instagram.`}
             {hoje != null && ` · ${hoje.toLocaleString('pt-BR')} seguidores${antes != null && antes !== hoje ? ` (${hoje - antes >= 0 ? '+' : ''}${hoje - antes} em ${Math.max(1, Math.round((Date.parse(seguidores[0].dia) - Date.parse(seguidores.at(-1).dia)) / 864e5))} dias)` : ''}`}
           </p>
         </div>
       </div>
       <div className="adm-subabas">
-        {[['criar', 'Criar peça'], ['agenda', 'Calendário'], ['anuncios', 'Anúncios'], ['metricas', 'Resultado por imóvel']].map(([k, n]) => <button key={k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)}>{n}</button>)}
+        {[['criar', 'Criar peça'], ['reels', 'Editor de Reels'], ['agenda', 'Calendário'], ['anuncios', 'Anúncios'], ['metricas', 'Resultado por imóvel']].map(([k, n]) => <button key={k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)}>{n}</button>)}
       </div>
-      {sub === 'criar' && <Criar conectado={!!conexao?.conectado} aoSalvar={() => setSub('agenda')} />}
-      {sub === 'agenda' && <Calendario conexao={conexao} />}
+      {sub === 'criar' && <Criar conectado={!!conexao?.conectado} aoSalvar={(c) => (c?.status === 'aguardando' ? setPostar(c) : setSub('agenda'))} aoReels={() => setSub('reels')} />}
+      {sub === 'reels' && <EditorReels aoSalvar={(c) => (c?.status === 'aguardando' ? setPostar(c) : setSub('agenda'))} />}
+      {sub === 'agenda' && <Calendario conexao={conexao} aoPostar={setPostar} />}
       {sub === 'anuncios' && <Anuncios />}
       {sub === 'metricas' && <Resultados />}
     </section>
   );
 }
 
-// ------------------------------------------------------------------ desenho das peças (canvas)
-let fontesProntas = null;
-function carregarFontes() {
-  if (fontesProntas) return fontesProntas;
-  if (!document.getElementById('fontes-estudio')) {
-    const l = document.createElement('link'); l.id = 'fontes-estudio'; l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Syncopate:wght@400;700&display=swap';
-    document.head.appendChild(l);
-  }
-  fontesProntas = Promise.all(['400 40px Montserrat', '600 40px Montserrat', '700 40px Montserrat', '400 40px Syncopate', '700 40px Syncopate'].map((f) => document.fonts.load(f).catch(() => {})));
-  return fontesProntas;
-}
-const cacheImg = new Map();
-function imagem(src) {
-  if (!cacheImg.has(src)) cacheImg.set(src, new Promise((ok, erro) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => ok(i); i.onerror = erro; i.src = src; }));
-  return cacheImg.get(src);
-}
-function cobrir(ctx, img, x, y, w, h) {
-  const r = Math.max(w / img.width, h / img.height), iw = img.width * r, ih = img.height * r;
-  ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
-}
-function quebrar(ctx, texto, larg) {
-  const linhas = []; let atual = '';
-  for (const p of String(texto || '').split(/\s+/)) { const t = atual ? `${atual} ${p}` : p; if (ctx.measureText(t).width > larg && atual) { linhas.push(atual); atual = p; } else atual = t; }
-  if (atual) linhas.push(atual);
-  return linhas;
-}
-function escrever(ctx, texto, x, y, larg, alt, max = 99) {
-  const l = quebrar(ctx, texto, larg).slice(0, max);
-  l.forEach((t, i) => ctx.fillText(t, x, y + i * alt));
-  return y + l.length * alt;
-}
-const ficha = (im) => [im.area ? `${im.area} m²` : null, im.quartos ? `${im.quartos} quartos` : null, im.suites ? `${im.suites} ${im.suites > 1 ? 'suítes' : 'suíte'}` : null, im.vagas ? `${im.vagas} vagas` : null].filter(Boolean).join('  ·  ');
-
+// ------------------------------------------------------------------ desenho das peças (padrão do Instagram do Anderson)
 async function desenhar(tipo, i, total, d) {
-  await carregarFontes();
   const [, W, H] = TIPOS[tipo === 'reel' ? 'story' : tipo];
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  const claro = d.estilo === 'claro', fundo = claro ? '#f6f6f5' : '#070707', tinta = claro ? '#070707' : '#ffffff';
-  const simbolo = await imagem(claro ? '/marca/simbolo-preto.svg' : '/marca/simbolo-branco.svg').catch(() => null);
-  const logo = await imagem(claro ? '/marca/anderson-costa-horizontal-preto.svg' : '/marca/anderson-costa-horizontal-branco.svg').catch(() => null);
-  const fotos = d.fotos;
-  const ultimo = tipo === 'carrossel' && i === total - 1;
-  ctx.fillStyle = fundo; ctx.fillRect(0, 0, W, H);
-  ctx.textBaseline = 'top';
-
-  if (ultimo) {
-    // Slide final: chamada
-    ctx.fillStyle = tinta;
-    if (simbolo) ctx.drawImage(simbolo, 80, 90, 120, 120 * simbolo.height / simbolo.width);
-    ctx.font = '700 76px Montserrat, Helvetica, Arial, sans-serif'; let y = escrever(ctx, d.fechamento || 'Quer ver de perto?', 80, 420, W - 160, 92, 4);
-    ctx.font = '400 40px Montserrat'; ctx.globalAlpha = 0.85;
-    y = escrever(ctx, d.palavra ? `Comente ${d.palavra} que eu te mando a curadoria completa por mensagem.` : 'Me chame no WhatsApp e receba a curadoria completa.', 80, y + 40, W - 160, 56, 5);
-    ctx.globalAlpha = 1;
-    if (logo) ctx.drawImage(logo, 80, H - 230, 520, 520 * logo.height / logo.width);
-    ctx.font = '600 30px Montserrat, Helvetica, Arial, sans-serif'; ctx.fillText('CRECI SC 68594', 80, H - 120);
+  const capa = { im: d.im, foto: d.fotos[0], rotulo: d.rotulo, titulo: d.titulo, preco: d.preco, ficha: fichaPadrao(d.im, d) };
+  if (i === 0) { await desenharCapa(ctx, W, H, capa); return cv; }
+  if (tipo === 'carrossel' && i === total - 1) {
+    await desenharFim(ctx, W, H, { im: d.im, foto: d.fotos[1] || d.fotos[0], titulo: d.tituloFim || d.im.bairro, linha1: d.linha1, linha2: d.linha2 });
     return cv;
   }
-  const foto = fotos[Math.min(i, fotos.length - 1)];
-  const img = foto ? await imagem(absoluta(foto)).catch(() => null) : null;
-
-  if (tipo === 'story' || tipo === 'reel') {
-    const hf = Math.round(H * 0.64);
-    if (img) cobrir(ctx, img, 0, 0, W, hf);
-    const g = ctx.createLinearGradient(0, hf - 260, 0, hf); g.addColorStop(0, 'rgba(7,7,7,0)'); g.addColorStop(1, fundo);
-    ctx.fillStyle = g; ctx.fillRect(0, hf - 260, W, 260);
-    if (simbolo) ctx.drawImage(simbolo, 70, 80, 90, 90 * simbolo.height / simbolo.width);
-    ctx.fillStyle = tinta; ctx.font = '400 30px Syncopate, Helvetica, Arial, sans-serif'; ctx.fillText(`${(d.im.bairro || '').toUpperCase()} · ${(d.im.cidade || '').toUpperCase()}`, 70, hf + 50);
-    ctx.font = '700 70px Montserrat, Helvetica, Arial, sans-serif'; let y = escrever(ctx, d.gancho || d.im.titulo, 70, hf + 110, W - 140, 84, 3);
-    ctx.font = '400 36px Montserrat, Helvetica, Arial, sans-serif'; ctx.globalAlpha = 0.85; ctx.fillText(ficha(d.im), 70, y + 24); ctx.globalAlpha = 1;
-    if (d.preco) { ctx.font = '600 44px Montserrat, Helvetica, Arial, sans-serif'; ctx.fillText(d.preco, 70, y + 90); }
-    ctx.font = '600 30px Montserrat, Helvetica, Arial, sans-serif'; ctx.fillText(d.palavra ? `Responda ${d.palavra} e receba a curadoria` : 'Responda este story', 70, H - 170);
-    ctx.globalAlpha = 0.7; ctx.font = '400 26px Montserrat, Helvetica, Arial, sans-serif'; ctx.fillText('Anderson Costa · CRECI SC 68594', 70, H - 110); ctx.globalAlpha = 1;
-    return cv;
-  }
-
-  if (img) cobrir(ctx, img, 0, 0, W, H);
-  if (i === 0) {
-    // Capa
-    const g = ctx.createLinearGradient(0, H * 0.45, 0, H); g.addColorStop(0, 'rgba(7,7,7,0)'); g.addColorStop(1, 'rgba(7,7,7,0.88)');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    const s2 = await imagem('/marca/simbolo-branco.svg').catch(() => null);
-    if (s2) ctx.drawImage(s2, 70, 70, 96, 96 * s2.height / s2.width);
-    ctx.fillStyle = '#fff'; ctx.font = '400 28px Syncopate, Helvetica, Arial, sans-serif'; ctx.fillText(`${(d.im.bairro || '').toUpperCase()} · ${(d.im.cidade || '').toUpperCase()}`, 70, H - 470);
-    ctx.font = '700 76px Montserrat, Helvetica, Arial, sans-serif';
-    const linhas = quebrar(ctx, d.gancho || d.im.titulo, W - 140).slice(0, 3);
-    linhas.forEach((t, k) => ctx.fillText(t, 70, H - 420 + k * 90));
-    ctx.font = '400 34px Montserrat, Helvetica, Arial, sans-serif'; ctx.globalAlpha = 0.9; ctx.fillText(ficha(d.im), 70, H - 130); ctx.globalAlpha = 1;
-    if (tipo === 'carrossel') { ctx.font = '600 28px Montserrat, Helvetica, Arial, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('Arraste  →', W - 70, 90); ctx.textAlign = 'left'; }
-    if (d.preco) { ctx.font = '600 36px Montserrat, Helvetica, Arial, sans-serif'; ctx.textAlign = 'right'; ctx.fillText(d.preco, W - 70, H - 130); ctx.textAlign = 'left'; }
-    return cv;
-  }
-  // Slides do meio: foto com caixa de texto
-  const s = d.slides[i - 1];
-  if (s) {
-    ctx.font = '400 36px Montserrat, Helvetica, Arial, sans-serif';
-    const linhas = quebrar(ctx, s.texto, W - 220).slice(0, 4);
-    const altCaixa = 120 + linhas.length * 50;
-    ctx.fillStyle = claro ? 'rgba(246,246,245,0.94)' : 'rgba(7,7,7,0.82)';
-    ctx.fillRect(60, H - altCaixa - 60, W - 120, altCaixa);
-    ctx.fillStyle = tinta; ctx.font = '700 46px Montserrat, Helvetica, Arial, sans-serif'; ctx.fillText(s.titulo, 100, H - altCaixa - 30);
-    ctx.font = '400 36px Montserrat, Helvetica, Arial, sans-serif'; linhas.forEach((t, k) => ctx.fillText(t, 100, H - altCaixa + 40 + k * 50));
-  }
-  ctx.fillStyle = '#fff'; ctx.font = '600 26px Montserrat, Helvetica, Arial, sans-serif'; ctx.textAlign = 'right'; ctx.globalAlpha = 0.9; ctx.fillText(`${i + 1}/${total}`, W - 70, 70); ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  await desenharFoto(ctx, W, H, d.fotos[i]);
   return cv;
 }
-const blobDe = (cv) => new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.9));
+const blobDe = (cv) => new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.92));
 
 // ------------------------------------------------------------------ criar
-function Criar({ conectado, aoSalvar }) {
+function Criar({ conectado, aoSalvar, aoReels }) {
   const [imoveis, setImoveis] = useState([]);
   const [cod, setCod] = useState('');
   const [tipo, setTipo] = useState('carrossel');
   const [fotos, setFotos] = useState([]);
   const [video, setVideo] = useState(null);
-  const [txt, setTxt] = useState({ gancho: '', slides: [], legenda: '', palavra_chave: '', resposta_dm: '', fechamento: 'Quer ver de perto?' });
-  const [estilo, setEstilo] = useState('escuro');
+  const vazio = { rotulo: '', titulo: '', ambientes: '', diferencial: '', linha1: 'Entre em contato', linha2: 'e saiba mais.', legenda: '', palavra_chave: '', resposta_dm: '' };
+  const [txt, setTxt] = useState(vazio);
   const [mostrarPreco, setMostrarPreco] = useState(true);
+  const [modo, setModo] = useState('assistido');
   const [redes, setRedes] = useState(['instagram']);
   const [quando, setQuando] = useState('');
   const [previas, setPrevias] = useState([]);
   const [ocupado, setOcupado] = useState('');
   const [msg, setMsg] = useState('');
   const im = imoveis.find((x) => x.codigo === cod);
+  const set = (k) => (e) => setTxt((t) => ({ ...t, [k]: e.target.value }));
 
   useEffect(() => {
-    sb().from('imoveis').select('codigo,titulo,bairro,cidade,preco,preco_visivel,area,quartos,suites,vagas,fotos,status').in('status', ['disponivel', 'reservado', 'rascunho']).order('codigo', { ascending: false })
+    sb().from('imoveis').select('codigo,titulo,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,fotos,status').in('status', ['disponivel', 'reservado', 'rascunho']).order('codigo', { ascending: false })
       .then(({ data }) => setImoveis(data || []));
   }, []);
-  useEffect(() => { if (im) setFotos((im.fotos || []).slice(0, 6)); setTxt((t) => ({ ...t, gancho: '', slides: [], legenda: '' })); }, [cod]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!im) return;
+    setFotos((im.fotos || []).slice(0, 8));
+    setTxt({ ...vazio, rotulo: ROTULOS_PADRAO(im), titulo: im.bairro || '' });
+  }, [cod]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = tipo === 'carrossel' ? Math.min(10, Math.max(2, fotos.length + 1)) : 1;
-  const dados = useMemo(() => im && ({ im, fotos, gancho: txt.gancho, slides: txt.slides, palavra: txt.palavra_chave, fechamento: txt.fechamento, estilo, preco: mostrarPreco && im.preco_visivel && im.preco ? brl(im.preco) : '' }), [im, fotos, txt, estilo, mostrarPreco]);
+  const dados = useMemo(() => im && ({ im, fotos, ...txt, preco: mostrarPreco && im.preco_visivel !== false && im.preco ? brl(im.preco) : '' }), [im, fotos, txt, mostrarPreco]);
   const desenharTudo = useCallback(async () => {
     if (!dados || tipo === 'reel' || !fotos.length) { setPrevias([]); return; }
     const cvs = []; for (let i = 0; i < total; i++) cvs.push(await desenhar(tipo, i, total, dados));
     setPrevias(cvs);
   }, [dados, tipo, total, fotos.length]);
-  useEffect(() => { const t = setTimeout(desenharTudo, 250); return () => clearTimeout(t); }, [desenharTudo]);
+  useEffect(() => { const t = setTimeout(desenharTudo, 300); return () => clearTimeout(t); }, [desenharTudo]);
 
   const gerar = async () => {
     setOcupado('textos'); setMsg('');
-    try { const r = await meta({ acao: 'textos', imovel: cod, tipo }); setTxt((t) => ({ ...t, ...r })); }
+    try { const r = await meta({ acao: 'textos', imovel: cod, tipo }); setTxt((t) => ({ ...t, ...Object.fromEntries(Object.entries(r).filter(([, v]) => v)) })); }
     catch (e) { setMsg(e.message); }
     setOcupado('');
   };
@@ -204,34 +113,22 @@ function Criar({ conectado, aoSalvar }) {
   };
   const salvar = async (agora) => {
     if (!im) return;
-    if (tipo === 'reel' && !video) { setMsg('Escolha o vídeo.'); return; }
-    if (agora && !conectado) { setMsg('Conecte a Meta antes de publicar. Por enquanto, baixe as imagens.'); return; }
-    if (!agora && !quando) { setMsg('Escolha dia e hora, ou publique agora.'); return; }
+    if (tipo === 'reel' && !video) { setMsg('Escolha o vídeo, ou monte no Editor de Reels.'); return; }
+    if (agora && modo === 'automatico' && !conectado) { setMsg('Para postar sozinho a Meta precisa estar conectada. Use "Com música" e poste pelo app.'); return; }
+    if (!agora && !quando) { setMsg('Escolha dia e hora, ou poste agora.'); return; }
     setOcupado('salvando'); setMsg('');
     try {
       const id = crypto.randomUUID(); const arquivos = [];
       if (tipo === 'reel') {
-        if (video.size > 48 * 1024 * 1024) throw new Error('Vídeo acima de 48 MB. Exporte em 1080p.');
-        const caminho = `criativos/${id}/video.${(video.name.split('.').pop() || 'mp4').toLowerCase()}`;
-        const { error } = await sb().storage.from(BUCKET).upload(caminho, video, { contentType: video.type || 'video/mp4' });
-        if (error) throw error;
-        arquivos.push({ url: urlPublica(caminho), caminho, tipo: 'video' });
+        if (video.size > 95 * 1024 * 1024) throw new Error('Vídeo acima de 95 MB. Exporte em 1080p.');
+        arquivos.push(await enviarArquivo(id, `video.${(video.name.split('.').pop() || 'mp4').toLowerCase()}`, video, video.type || 'video/mp4'));
       } else {
-        for (let i = 0; i < previas.length; i++) {
-          const caminho = `criativos/${id}/${String(i + 1).padStart(2, '0')}.jpg`;
-          const { error } = await sb().storage.from(BUCKET).upload(caminho, await blobDe(previas[i]), { contentType: 'image/jpeg' });
-          if (error) throw error;
-          arquivos.push({ url: urlPublica(caminho), caminho, tipo: 'imagem' });
-        }
+        for (let i = 0; i < previas.length; i++) arquivos.push(await enviarArquivo(id, `${String(i + 1).padStart(2, '0')}.jpg`, await blobDe(previas[i]), 'image/jpeg'));
       }
-      const { error } = await sb().from('criativos').insert({
-        id, imovel_codigo: cod, tipo, titulo: txt.gancho || im.titulo, arquivos, legenda: txt.legenda, redes: tipo === 'story' || tipo === 'reel' ? ['instagram'] : redes,
-        status: agora ? 'rascunho' : 'agendado', agendado_para: agora ? null : deLocal(quando), palavra_chave: txt.palavra_chave || null, resposta_dm: txt.resposta_dm || null,
-      });
-      if (error) throw error;
-      if (agora) await meta({ acao: 'publicar', id });
-      setMsg(agora ? 'Publicado.' : 'Agendado. Sai sozinho no horário.');
-      setTimeout(aoSalvar, 900);
+      const c = await salvarCriativo({ id, cod, tipo, titulo: `${txt.rotulo} ${txt.titulo}`.trim() || im.titulo, arquivos, legenda: txt.legenda, redes, modo, agora, quando,
+        palavra_chave: txt.palavra_chave, resposta_dm: txt.resposta_dm, dados: { rotulo: txt.rotulo, titulo: txt.titulo, ambientes: txt.ambientes, diferencial: txt.diferencial } });
+      setMsg(agora ? (modo === 'assistido' ? 'Pronto. Abrindo a tela de postagem…' : 'Publicado.') : modo === 'assistido' ? 'Agendado. No horário o app te avisa para postar com música.' : 'Agendado. Sai sozinho no horário.');
+      setTimeout(() => aoSalvar(c), 700);
     } catch (e) { setMsg('Não deu certo: ' + e.message); }
     setOcupado('');
   };
@@ -246,66 +143,125 @@ function Criar({ conectado, aoSalvar }) {
           <div className="adm-subabas">{Object.entries(TIPOS).map(([k, [n]]) => <button key={k} className={tipo === k ? 'on' : ''} onClick={() => setTipo(k)}>{n}</button>)}</div>
           {im && tipo !== 'reel' && (
             <>
-              <p className="adm-sub">Toque nas fotos na ordem em que devem aparecer {tipo === 'carrossel' ? '(a primeira é a capa, até 9)' : '(usa a primeira)'}.</p>
+              <p className="adm-sub">Toque nas fotos na ordem em que devem aparecer {tipo === 'carrossel' ? '(a 1ª é a capa e a 2ª fecha o carrossel; até 9)' : '(usa a primeira)'}.</p>
               <div className="adm-estudio-fotos">{(im.fotos || []).map((f) => {
                 const n = fotos.indexOf(f);
                 return <button key={f} className={n >= 0 ? 'on' : ''} onClick={() => alternarFoto(f)}><img src={f.replace(/\.(webp|jpe?g)$/i, '-p.$1')} onError={(e) => { e.currentTarget.src = f; }} alt="" />{n >= 0 && <b>{n + 1}</b>}</button>;
               })}</div>
             </>
           )}
-          {tipo === 'reel' && <label className="adm-campo"><span>Vídeo vertical (MP4 ou MOV, até 48 MB, 1080p)</span><input type="file" accept="video/mp4,video/quicktime" onChange={(e) => setVideo(e.target.files?.[0] || null)} /></label>}
+          {tipo === 'reel' && (
+            <>
+              <label className="adm-campo"><span>Vídeo vertical já editado (MP4 ou MOV, 1080p)</span><input type="file" accept="video/mp4,video/quicktime" onChange={(e) => setVideo(e.target.files?.[0] || null)} /></label>
+              <p className="adm-sub">Quer montar o vídeo com as fotos e vídeos do imóvel, capa e encerramento no seu padrão? <button className="adm-link" onClick={aoReels}>Abrir o Editor de Reels</button></p>
+            </>
+          )}
         </div>
         {im && (
           <div className="adm-bloco">
             <div className="adm-bloco-topo"><h2>Textos</h2><button className="adm-btn" disabled={ocupado === 'textos'} onClick={gerar}>{ocupado === 'textos' ? 'Escrevendo…' : '✦ Escrever com IA'}</button></div>
-            {tipo !== 'reel' && <label className="adm-campo"><span>Frase da capa</span><input value={txt.gancho} onChange={(e) => setTxt({ ...txt, gancho: e.target.value })} placeholder={im.titulo} /></label>}
-            {tipo === 'carrossel' && fotos.slice(1).map((_, k) => (
-              <div key={k} className="adm-grade2">
-                <label className="adm-campo"><span>Slide {k + 2}: título</span><input value={txt.slides[k]?.titulo || ''} onChange={(e) => { const s = [...txt.slides]; s[k] = { ...(s[k] || {}), titulo: e.target.value }; setTxt({ ...txt, slides: s }); }} /></label>
-                <label className="adm-campo"><span>Texto</span><input value={txt.slides[k]?.texto || ''} onChange={(e) => { const s = [...txt.slides]; s[k] = { ...(s[k] || {}), texto: e.target.value }; setTxt({ ...txt, slides: s }); }} /></label>
-              </div>
-            ))}
-            {tipo === 'carrossel' && <label className="adm-campo"><span>Último slide</span><input value={txt.fechamento} onChange={(e) => setTxt({ ...txt, fechamento: e.target.value })} /></label>}
-            {tipo !== 'story' && <label className="adm-campo"><span>Legenda</span><textarea rows={7} value={txt.legenda} onChange={(e) => setTxt({ ...txt, legenda: e.target.value })} /></label>}
+            {tipo !== 'reel' && (
+              <>
+                <div className="adm-grade2">
+                  <label className="adm-campo"><span>Rótulo (acima, à esquerda)</span><input value={txt.rotulo} onChange={set('rotulo')} placeholder="Casa ampla" /></label>
+                  <label className="adm-campo"><span>Título grande (bairro)</span><input value={txt.titulo} onChange={set('titulo')} placeholder={im.bairro} /></label>
+                </div>
+                <label className="adm-campo"><span>Ambientes</span><input value={txt.ambientes} onChange={set('ambientes')} placeholder="Living integrado, cozinha com ilha e área gourmet." /></label>
+                <label className="adm-campo"><span>Diferencial (última linha da capa)</span><input value={txt.diferencial} onChange={set('diferencial')} placeholder="Terreno amplo com espaço para piscina." /></label>
+                {tipo === 'carrossel' && (
+                  <div className="adm-grade2">
+                    <label className="adm-campo"><span>Último slide, linha 1</span><input value={txt.linha1} onChange={set('linha1')} /></label>
+                    <label className="adm-campo"><span>Último slide, linha 2</span><input value={txt.linha2} onChange={set('linha2')} /></label>
+                  </div>
+                )}
+              </>
+            )}
+            {tipo !== 'story' && <label className="adm-campo"><span>Legenda</span><textarea rows={10} value={txt.legenda} onChange={set('legenda')} /></label>}
             <div className="adm-grade2">
-              <label className="adm-campo"><span>Palavra para comentar (vira mensagem automática)</span><input value={txt.palavra_chave} onChange={(e) => setTxt({ ...txt, palavra_chave: e.target.value.toUpperCase() })} placeholder="CURADORIA" /></label>
-              <label className="adm-campo"><span>Mensagem automática</span><input value={txt.resposta_dm} onChange={(e) => setTxt({ ...txt, resposta_dm: e.target.value })} /></label>
+              <label className="adm-campo"><span>Palavra para comentar (opcional)</span><input value={txt.palavra_chave} onChange={(e) => setTxt({ ...txt, palavra_chave: e.target.value.toUpperCase() })} placeholder="VILANOVA" /></label>
+              <label className="adm-campo"><span>Mensagem automática para quem comentar</span><input value={txt.resposta_dm} onChange={set('resposta_dm')} /></label>
             </div>
             <div className="adm-checks">
-              <label className="adm-check"><input type="radio" checked={estilo === 'escuro'} onChange={() => setEstilo('escuro')} /> Fundo preto</label>
-              <label className="adm-check"><input type="radio" checked={estilo === 'claro'} onChange={() => setEstilo('claro')} /> Fundo claro</label>
               <label className="adm-check"><input type="checkbox" checked={mostrarPreco} onChange={(e) => setMostrarPreco(e.target.checked)} /> Mostrar preço</label>
             </div>
           </div>
         )}
         {im && (
           <div className="adm-bloco">
-            <h2>Onde e quando</h2>
+            <h2>Como publicar</h2>
             <div className="adm-checks">
-              <label className="adm-check"><input type="checkbox" checked={redes.includes('instagram')} onChange={() => setRedes((r) => (r.includes('instagram') ? r.filter((x) => x !== 'instagram') : [...r, 'instagram']))} /> Instagram</label>
-              <label className="adm-check"><input type="checkbox" disabled={tipo === 'story' || tipo === 'reel'} checked={redes.includes('facebook') && tipo !== 'story' && tipo !== 'reel'} onChange={() => setRedes((r) => (r.includes('facebook') ? r.filter((x) => x !== 'facebook') : [...r, 'facebook']))} /> Facebook</label>
+              <label className="adm-check"><input type="radio" checked={modo === 'assistido'} onChange={() => setModo('assistido')} /> Com música (o app te avisa e você posta pelo Instagram)</label>
+              <label className="adm-check"><input type="radio" checked={modo === 'automatico'} onChange={() => setModo('automatico')} /> Sem música (posta sozinho)</label>
             </div>
+            {modo === 'automatico' && tipo !== 'story' && tipo !== 'reel' && (
+              <div className="adm-checks">
+                <label className="adm-check"><input type="checkbox" checked={redes.includes('instagram')} onChange={() => setRedes((r) => (r.includes('instagram') ? r.filter((x) => x !== 'instagram') : [...r, 'instagram']))} /> Instagram</label>
+                <label className="adm-check"><input type="checkbox" checked={redes.includes('facebook')} onChange={() => setRedes((r) => (r.includes('facebook') ? r.filter((x) => x !== 'facebook') : [...r, 'facebook']))} /> Facebook</label>
+              </div>
+            )}
             <label className="adm-campo"><span>Agendar para</span><input type="datetime-local" value={quando} onChange={(e) => setQuando(e.target.value)} /></label>
             <div className="adm-wa-acoes">
               <button className="adm-btn adm-primario" disabled={!!ocupado} onClick={() => salvar(false)}>{ocupado === 'salvando' ? 'Salvando…' : 'Aprovar e agendar'}</button>
-              <button className="adm-btn" disabled={!!ocupado} onClick={() => salvar(true)}>Publicar agora</button>
+              <button className="adm-btn" disabled={!!ocupado} onClick={() => salvar(true)}>{modo === 'assistido' ? 'Postar agora' : 'Publicar agora'}</button>
               {previas.length > 0 && <button className="adm-link" onClick={baixar}>Baixar imagens</button>}
             </div>
-            <p className="adm-sub">Aprovar é o seu OK: nada vai ao ar sem ele. Horários que costumam funcionar: 12h, 18h30 e 21h.</p>
+            <p className="adm-sub">{modo === 'assistido'
+              ? 'A Meta não deixa programas de fora colocarem música da biblioteca do Instagram. Por isso, no horário marcado chega uma notificação: você toca, salva as imagens, copia a legenda e escolhe a música no Instagram. Leva menos de 1 minuto.'
+              : 'Aprovar é o seu OK: nada vai ao ar sem ele. Horários que costumam funcionar: 12h, 18h30 e 21h.'}</p>
             {msg && <p className="adm-msg">{msg}</p>}
           </div>
         )}
       </div>
       <div className="adm-estudio-previa">
         {previas.length ? previas.map((cv, k) => <img key={k} src={cv.toDataURL('image/jpeg', 0.7)} alt={`Prévia ${k + 1}`} className={tipo === 'story' ? 'story' : ''} />)
-          : <p className="adm-sub">{im ? (tipo === 'reel' ? 'O vídeo vai como está. O editor de Reels chega na próxima entrega.' : 'Escolha as fotos.') : 'Escolha um imóvel para começar.'}</p>}
+          : <p className="adm-sub">{im ? (tipo === 'reel' ? 'O vídeo vai como está.' : 'Escolha as fotos.') : 'Escolha um imóvel para começar.'}</p>}
       </div>
     </div>
   );
 }
 
+// ------------------------------------------------------------------ postar pelo Instagram (com música)
+export function Postar({ criativo: c, aoFechar }) {
+  const [msg, setMsg] = useState('');
+  const [arquivos, setArquivos] = useState(null);
+  useEffect(() => {
+    Promise.all((c.arquivos || []).map(async (a, i) => {
+      const b = await (await fetch(a.url)).blob();
+      return new File([b], `${c.imovel_codigo || 'peca'}-${i + 1}.${a.tipo === 'video' ? 'mp4' : 'jpg'}`, { type: b.type || (a.tipo === 'video' ? 'video/mp4' : 'image/jpeg') });
+    })).then(setArquivos).catch(() => setArquivos([]));
+  }, [c]);
+  const salvarNoCelular = async () => {
+    setMsg('');
+    try {
+      if (arquivos?.length && navigator.canShare?.({ files: arquivos })) { await navigator.share({ files: arquivos }); setMsg('Escolha "Salvar imagens" (ou "Salvar vídeo") na janela que abriu.'); return; }
+      for (const f of arquivos || []) { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; a.click(); await new Promise((r) => setTimeout(r, 300)); }
+      setMsg('Arquivos baixados.');
+    } catch (e) { if (e.name !== 'AbortError') setMsg('Não deu: ' + e.message); }
+  };
+  const copiar = async () => { try { await navigator.clipboard.writeText(c.legenda || ''); setMsg('Legenda copiada. É só colar no Instagram.'); } catch { setMsg('Não consegui copiar. Segure no texto abaixo e copie.'); } };
+  const postei = async () => {
+    await sb().from('criativos').update({ status: 'publicado', publicado_em: new Date().toISOString(), atualizado_em: new Date().toISOString() }).eq('id', c.id);
+    aoFechar();
+  };
+  return (
+    <div className="adm-postar">
+      <button className="adm-link" onClick={aoFechar}>← Voltar</button>
+      <h1>Postar {c.imovel_codigo} · {TIPOS[c.tipo]?.[0]}</h1>
+      <div className="adm-postar-fotos">{(c.arquivos || []).map((a, i) => (a.tipo === 'video' ? <video key={i} src={a.url} controls playsInline /> : <img key={i} src={a.url} alt="" />))}</div>
+      <ol className="adm-passos">
+        <li><button className="adm-btn adm-primario" disabled={!arquivos} onClick={salvarNoCelular}>{arquivos ? '1. Salvar no celular' : 'Preparando…'}</button></li>
+        {c.tipo !== 'story' && <li><button className="adm-btn" onClick={copiar}>2. Copiar legenda</button></li>}
+        <li><a className="adm-btn" href="instagram://app">3. Abrir o Instagram</a> <small>Selecione as imagens na ordem, toque em <b>Adicionar música</b>, escolha a faixa e cole a legenda.</small></li>
+        <li><button className="adm-btn" onClick={postei}>4. Já postei</button> <small>As métricas deste post entram sozinhas no relatório quando a Meta estiver conectada.</small></li>
+      </ol>
+      {msg && <p className="adm-msg">{msg}</p>}
+      {c.legenda && <pre className="adm-legenda">{c.legenda}</pre>}
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------ calendário
-function Calendario({ conexao }) {
+function Calendario({ conexao, aoPostar }) {
   const [lista, setLista] = useState(null);
   const [msg, setMsg] = useState('');
   const [anuncioDe, setAnuncioDe] = useState(null);
@@ -330,12 +286,13 @@ function Calendario({ conexao }) {
           <li key={c.id} className="adm-fila">
             {c.arquivos?.[0] && (c.arquivos[0].tipo === 'video' ? <div className="adm-peca-mini">▶</div> : <img className="adm-peca-mini" src={c.arquivos[0].url} alt="" />)}
             <div>
-              <b>{c.imovel_codigo} · {TIPOS[c.tipo]?.[0]}</b> <span className={`adm-tag ${c.status === 'erro' ? 't-bloq' : c.status === 'publicado' ? 't-voce' : ''}`}>{STATUS[c.status]}</span>
-              <small>{c.status === 'publicado' ? `Publicado ${dataHora(c.publicado_em)}` : c.agendado_para ? `Agendado para ${dataHora(c.agendado_para)}` : 'Sem data'} · {(c.redes || []).join(' e ')}{c.palavra_chave ? ` · palavra ${c.palavra_chave}` : ''}</small>
+              <b>{c.imovel_codigo} · {TIPOS[c.tipo]?.[0]}</b> <span className={`adm-tag ${c.status === 'erro' ? 't-bloq' : c.status === 'publicado' ? 't-voce' : c.status === 'aguardando' ? 't-alerta' : ''}`}>{STATUS[c.status]}</span>{c.modo === 'assistido' && <span className="adm-tag">com música</span>}
+              <small>{c.status === 'publicado' ? `Publicado ${dataHora(c.publicado_em)}` : c.agendado_para ? `Agendado para ${dataHora(c.agendado_para)}` : 'Sem data'} · {c.modo === 'assistido' ? 'você posta pelo app' : (c.redes || []).join(' e ')}{c.palavra_chave ? ` · palavra ${c.palavra_chave}` : ''}</small>
               {c.metricas && Object.keys(c.metricas).length > 0 && <small>Alcance {c.metricas.reach ?? 0} · visualizações {c.metricas.views ?? 0} · curtidas {c.metricas.likes ?? 0} · envios {c.metricas.shares ?? 0} · salvos {c.metricas.saved ?? 0}</small>}
               {c.erro && <small className="adm-erro">{c.erro}</small>}
               <div className="adm-wa-acoes">
-                {['rascunho', 'agendado', 'erro'].includes(c.status) && conexao?.conectado && <button className="adm-link" onClick={() => acao(c, 'publicar')}>Publicar agora</button>}
+                {(c.modo === 'assistido' ? ['rascunho', 'agendado', 'aguardando', 'erro'] : []).includes(c.status) && <button className="adm-link" onClick={() => aoPostar(c)}>Postar agora</button>}
+                {c.modo !== 'assistido' && ['rascunho', 'agendado', 'erro'].includes(c.status) && conexao?.conectado && <button className="adm-link" onClick={() => acao(c, 'publicar')}>Publicar agora</button>}
                 {c.status === 'agendado' && <button className="adm-link" onClick={() => acao(c, 'pausar')}>Tirar da agenda</button>}
                 {c.ig_permalink && <a className="adm-link" href={c.ig_permalink} target="_blank" rel="noopener">Ver no Instagram</a>}
                 {c.tipo !== 'reel' && c.tipo !== 'story' && conexao?.anuncios && <button className="adm-link" onClick={() => setAnuncioDe(c)}>Virar anúncio</button>}

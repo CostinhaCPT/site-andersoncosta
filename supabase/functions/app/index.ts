@@ -276,6 +276,31 @@ async function aplicarRevisao(body: Record<string, any>) {
 }
 
 // ------------------------------------------------------------------ servidor
+
+// ------------------------------------------------------------------ relatório do proprietário
+const REGRAS_RELATORIO = `Você escreve, na primeira pessoa e com a voz de Anderson Costa (corretor, CRECI SC 68594, Jaraguá do Sul), a parte de análise do relatório mensal que ele envia ao proprietário de um imóvel que está vendendo.
+Regras: use só os números enviados, sem inventar nada. Nunca use travessão. Tom profissional, próximo e franco, sem promessas de venda nem prazos. Nada de nomes, telefones ou dados de compradores: fale de "um casal", "uma família", "um investidor".
+Estrutura em 4 blocos curtos, com estes títulos exatos em linhas próprias:
+O que fiz neste período
+O que o mercado está dizendo
+Minha leitura
+Próximos passos
+Em "O que o mercado está dizendo", resuma as impressões dos visitantes e dos interessados (se houver) sem identificar ninguém. Em "Minha leitura", compare o preço por m² do imóvel com a referência e com a mediana dos concorrentes quando esses números existirem, e diga com tato se o preço está ajudando ou atrapalhando. Se faltarem dados, diga que ainda é cedo para conclusões. Em "Próximos passos", 2 a 4 ações concretas que eu vou fazer. Termine com uma frase cordial e sem bajulação. Máximo de 280 palavras.`;
+async function textoRelatorio(id: string) {
+  const { data: r } = await sb.from("relatorios").select("*").eq("id", id).maybeSingle();
+  if (!r) throw new Error("Relatório não encontrado.");
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: await modelo(), max_tokens: 1200, system: REGRAS_RELATORIO,
+      messages: [{ role: "user", content: `Período: ${r.inicio} a ${r.fim}.\nDados:\n${JSON.stringify(r.dados)}` }] }),
+  });
+  const j = await resp.json();
+  if (!resp.ok) throw new Error("A IA não respondeu. Tente de novo.");
+  const texto = (j.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").replace(/[ \t]*[—–][ \t]*/g, ", ").trim();
+  await sb.from("relatorios").update({ texto, atualizado_em: new Date().toISOString() }).eq("id", id);
+  return { texto };
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(origin) });
@@ -310,6 +335,10 @@ Deno.serve(async (req) => {
       return json({ token }, 200, origin);
     }
     if (body.acao === "revisao") return json(await aplicarRevisao(body), 200, origin);
+    if (body.acao === "relatorio_texto") {
+      try { return json(await textoRelatorio(String(body.id)), 200, origin); }
+      catch (e) { return json({ erro: (e as Error).message }, 200, origin); }
+    }
     return json({ erro: "ação desconhecida" }, 400, origin);
   } catch (e) {
     console.error(e);

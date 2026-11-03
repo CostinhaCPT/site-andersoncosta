@@ -7,6 +7,7 @@ import { BotaoWhats } from '@/components/Whats';
 import { imoveis, porSlug, semelhantes } from '@/lib/imoveis';
 import { brl, num } from '@/lib/format';
 import { SITE } from '@/lib/site';
+import ContarVisita from '@/components/ContarVisita';
 export function generateStaticParams() { return imoveis.map((i) => ({ slug: i.slug })); }
 export async function generateMetadata({ params }) {
   const i = porSlug((await params).slug);
@@ -21,6 +22,7 @@ export default async function Pagina({ params }) {
   return (
     <div className="pagina-imovel" data-codigo={i.codigo}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <ContarVisita codigo={i.codigo} />
       <div className="wrap">
         <div className="migalha"><Link href="/imoveis/">Imóveis</Link> / <Link href={`/imoveis/${i.cidadeSlug}/${i.bairroSlug}/`}>{i.bairro}</Link> / {i.tipo}</div>
         <Galeria fotos={i.fotos} titulo={i.titulo} />

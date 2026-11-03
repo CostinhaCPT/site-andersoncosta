@@ -141,6 +141,21 @@ async function metricas() {
   const hoje = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
   await sb.from("perfil_metricas").upsert({ dia: hoje, dados: { ...perfil, alcance_dia: alcance } });
 
+  // Posts feitos pelo app (com música): acha o post no Instagram pela legenda e guarda o id para medir
+  const { data: soltos } = await sb.from("criativos").select("id, legenda, publicado_em").eq("status", "publicado").eq("modo", "assistido").is("ig_media_id", null)
+    .gte("publicado_em", new Date(Date.now() - 20 * 864e5).toISOString()).limit(30);
+  if (soltos?.length) {
+    try {
+      const r = await graph(`${ig}/media`, { params: { fields: "id,caption,permalink,timestamp", limit: "40" } });
+      const chave = (t: unknown) => normal(t).replace(/[^a-z0-9]/g, "").slice(0, 60);
+      for (const c of soltos) {
+        const k = chave(c.legenda); if (k.length < 20) continue;
+        const m = (r.data ?? []).find((x: any) => chave(x.caption) === k);
+        if (m) await sb.from("criativos").update({ ig_media_id: m.id, ig_permalink: m.permalink, publicado_em: m.timestamp }).eq("id", c.id);
+      }
+    } catch (e) { console.error("ligar posts do app", e); }
+  }
+
   const { data: pecas } = await sb.from("criativos").select("id, tipo, ig_media_id").eq("status", "publicado").not("ig_media_id", "is", null)
     .gte("publicado_em", new Date(Date.now() - 60 * 864e5).toISOString()).limit(80);
   for (const p of pecas ?? []) {
@@ -234,30 +249,43 @@ async function modelo() {
   return MODELO;
 }
 const REGRAS_COPY = `Você é a copywriter de Anderson Costa, corretor de imóveis de médio e alto padrão em Jaraguá do Sul (CRECI SC 68594). O jeito dele se chama Método Compra Segura: curadoria, números e honestidade sobre cada imóvel.
-Regras inegociáveis: só use os fatos enviados, nunca invente metragem, vista, sol, distância, escola, acabamento ou vizinhança. Nunca use travessão. Sem clichês (imperdível, oportunidade única, sonho, maravilhoso, espetacular, no coração de, mais que uma casa). Sem exclamação em excesso. Fatos vencem adjetivos. Mencione um ponto de atenção honesto quando houver. Português do Brasil, frases curtas, tom sereno de quem conhece o imóvel. Não exponha endereço exato. Termine a legenda com "Anderson Costa · CRECI SC 68594".`;
+Regras inegociáveis: só use os fatos enviados, nunca invente metragem, vista, sol, distância, escola, acabamento, mobília ou vizinhança. Nunca use travessão (— ou –). Sem clichês (imperdível, oportunidade única, sonho, maravilhoso, espetacular, no coração de, mais que uma casa). Fatos vencem adjetivos. Português do Brasil, frases curtas, tom próximo e seguro de quem conhece o imóvel. Não exponha endereço exato.
+
+A legenda segue exatamente o padrão que já funciona no Instagram dele:
+1. Primeira linha: "🏡✨ " + frase forte com o tipo e o bairro (ex.: "🏡✨ Casa nova no Jaraguá 99, feita para viver bem de verdade").
+2. Linha em branco e 1 ou 2 parágrafos curtos sobre para quem o imóvel serve e a proposta do projeto.
+3. Lista com um emoji no começo de cada linha, um fato por linha, sem ponto final: 🛏️ suítes e dormitórios, 💼 escritório, 🛋️ sala e integração, 🍽️ cozinha, 🔥 churrasqueira ou área de festas, 🏊 piscina, 🚗 vagas, 🌞 iluminação, ✔️ itens inclusos. Use só o que estiver nos fatos.
+4. Uma frase de transição ("E nos fundos, um dos grandes diferenciais:" ou parecida) e o diferencial com 🌿 ou 💎.
+5. "📍 Localização:" com o bairro e a cidade (distância só se estiver nos fatos).
+6. Uma frase de fechamento sobre o que o imóvel entrega.
+7. "📲 Me chama no direct ou WhatsApp e eu te apresento todos os detalhes."
+8. "Anderson Costa · CRECI SC 68594"
+9. Linha em branco e 5 hashtags em minúsculas, uma por linha: #bairro (sem espaço e sem acento), #jaraguadosul, #imoveisjaraguadosul e 2 ligadas ao tipo (ex.: #casaterrea, #casanova, #altopadrao).
+Se houver palavra-chave para comentar, troque a linha 7 por "💬 Comente PALAVRA que eu te mando os detalhes no direct."`;
 async function gerarTextos(body: Record<string, any>) {
-  const { data: im } = await sb.from("imoveis").select("codigo,titulo,resumo,descricao,destaques,atencao,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,vagas,perfil_ideal,slug").eq("codigo", String(body.imovel ?? "")).maybeSingle();
+  const { data: im } = await sb.from("imoveis").select("codigo,titulo,resumo,descricao,destaques,atencao,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,perfil_ideal,slug").eq("codigo", String(body.imovel ?? "")).maybeSingle();
   if (!im) throw new ErroMeta("Imóvel não encontrado.");
   const ferramenta = {
-    name: "textos_post", description: "Textos da peça para redes sociais.",
-    input_schema: { type: "object", required: ["legenda", "slides", "gancho", "palavra_chave"], properties: {
-      gancho: { type: "string", description: "Frase de capa, até 8 palavras, que faça parar de rolar. Sem preço." },
-      slides: { type: "array", description: "4 a 7 slides do carrossel, cada um com título curto (até 5 palavras) e texto de até 18 palavras, um fato por slide.", items: { type: "object", properties: { titulo: { type: "string" }, texto: { type: "string" } }, required: ["titulo", "texto"] } },
-      legenda: { type: "string", description: "Legenda do Instagram: primeira linha forte, 3 a 6 linhas curtas, chamada para comentar a palavra-chave e receber a curadoria por mensagem, 3 a 5 hashtags locais no fim." },
-      palavra_chave: { type: "string", description: "Uma palavra em maiúsculas para o comentário, ex.: CURADORIA ou o nome curto do imóvel." },
+    name: "textos_post", description: "Textos da peça no padrão do Instagram do Anderson.",
+    input_schema: { type: "object", required: ["rotulo", "ambientes", "diferencial", "legenda"], properties: {
+      rotulo: { type: "string", description: "Rótulo curto que vai acima do bairro na capa, 2 palavras, ex.: Casa ampla, Casa mobiliada, Casa térrea, Apartamento novo." },
+      ambientes: { type: "string", description: "Linha 'Ambientes' da capa: uma frase de até 18 palavras sobre a distribuição dos ambientes, terminando com ponto." },
+      diferencial: { type: "string", description: "Última linha da capa: o maior diferencial do imóvel em uma frase de até 24 palavras, com número quando houver (ex.: terreno de 317m²), terminando com ponto." },
+      legenda: { type: "string", description: "Legenda completa seguindo o padrão das regras." },
+      palavra_chave: { type: "string", description: "Opcional: uma palavra em maiúsculas para o comentário virar mensagem automática (ex.: o nome do bairro sem espaço). Deixe vazio se não fizer sentido." },
       resposta_dm: { type: "string", description: "Mensagem automática para quem comentar: curta, cordial, com o link do imóvel." },
     } },
   };
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: await modelo(), max_tokens: 1500, system: REGRAS_COPY, tools: [ferramenta], tool_choice: { type: "tool", name: "textos_post" },
-      messages: [{ role: "user", content: `Peça: ${body.tipo ?? "carrossel"}. Objetivo: ${body.objetivo ?? "gerar conversas no WhatsApp com compradores qualificados"}.\nLink do imóvel: ${SITE}/imovel/${im.slug}/\nFatos:\n${JSON.stringify({ ...im, preco: im.preco_visivel ? im.preco : "sob consulta" })}\n${body.notas ? `Notas do Anderson: ${body.notas}` : ""}` }] }),
+    body: JSON.stringify({ model: await modelo(), max_tokens: 1800, system: REGRAS_COPY, tools: [ferramenta], tool_choice: { type: "tool", name: "textos_post" },
+      messages: [{ role: "user", content: `Peça: ${body.tipo ?? "carrossel"}. Objetivo: ${body.objetivo ?? "gerar conversas no direct e no WhatsApp com compradores qualificados"}.\nLink do imóvel: ${SITE}/imovel/${im.slug}/\nFatos:\n${JSON.stringify({ ...im, preco: im.preco_visivel ? im.preco : "sob consulta" })}\n${body.notas ? `Notas do Anderson: ${body.notas}` : ""}` }] }),
   });
   const j = await r.json();
   if (!r.ok) throw new ErroMeta("Falha na IA de textos.");
   const t = j.content?.find((b: any) => b.type === "tool_use")?.input ?? {};
-  const limpa = (s: unknown) => String(s ?? "").replace(/\s*[—–]\s*/g, ", ").trim();
-  return { gancho: limpa(t.gancho), slides: (t.slides ?? []).map((s: any) => ({ titulo: limpa(s.titulo), texto: limpa(s.texto) })), legenda: limpa(t.legenda), palavra_chave: limpa(t.palavra_chave).toUpperCase().replace(/[^A-Z0-9À-Ú]/g, "").slice(0, 20), resposta_dm: limpa(t.resposta_dm) };
+  const limpa = (s: unknown) => String(s ?? "").replace(/[ \t]*[—–][ \t]*/g, ", ").trim();
+  return { rotulo: limpa(t.rotulo), ambientes: limpa(t.ambientes), diferencial: limpa(t.diferencial), legenda: limpa(t.legenda), palavra_chave: limpa(t.palavra_chave).toUpperCase().replace(/[^A-Z0-9À-Ú]/g, "").slice(0, 20), resposta_dm: limpa(t.resposta_dm) };
 }
 
 // ------------------------------------------------------------------ comentário vira mensagem
@@ -324,9 +352,18 @@ Deno.serve(async (req) => {
   if (!quem) return json({ erro: "acesso negado" }, 403, origin);
   try {
     if (body.acao === "publicar_agendados") {
-      const { data } = await sb.from("criativos").select("id").eq("status", "agendado").lte("agendado_para", new Date().toISOString()).order("agendado_para").limit(5);
+      const { data } = await sb.from("criativos").select("id, modo, tipo, imovel_codigo, titulo").eq("status", "agendado").lte("agendado_para", new Date().toISOString()).order("agendado_para").limit(5);
       const res = [];
-      for (const c of data ?? []) { try { await publicar(c.id); res.push({ id: c.id, ok: true }); } catch (e) { res.push({ id: c.id, erro: (e as Error).message }); } }
+      for (const c of data ?? []) {
+        if (c.modo === "assistido") {
+          // Com música: a Meta não deixa programa de fora pôr música da biblioteca. Avisa o Anderson para postar pelo app.
+          const { data: pego } = await sb.from("criativos").update({ status: "aguardando", atualizado_em: new Date().toISOString() }).eq("id", c.id).eq("status", "agendado").select("id");
+          if (pego?.length) await sb.from("notificacoes").insert({ titulo: `Hora de postar ${c.imovel_codigo ?? ""}`.trim(), corpo: `${c.titulo ?? c.tipo}: toque para salvar, copiar a legenda e escolher a música.`, url: `/admin/?aba=estudio&postar=${c.id}`, chave: `postar-${c.id}` }).then(() => {}, () => {});
+          res.push({ id: c.id, aviso: true });
+          continue;
+        }
+        try { await publicar(c.id); res.push({ id: c.id, ok: true }); } catch (e) { res.push({ id: c.id, erro: (e as Error).message }); }
+      }
       return json({ publicados: res }, 200, origin);
     }
     if (body.acao === "metricas") return json(await metricas(), 200, origin);
