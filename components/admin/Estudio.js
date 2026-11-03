@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { sb } from '@/lib/admin/cliente';
 import { dataHora } from '@/lib/admin/ia';
 import { brl } from '@/lib/admin/crm';
-import { desenharCapa, desenharFim, desenharFoto, fichaPadrao } from '@/lib/admin/arte';
+import { desenharCapa, desenharFim, desenharFoto, fichaPadrao, textosPadrao } from '@/lib/admin/arte';
 import EditorReels from './EditorReels';
 import { meta, enviarArquivo, salvarCriativo } from '@/lib/admin/estudio';
 
@@ -85,13 +85,13 @@ function Criar({ conectado, aoSalvar, aoReels }) {
   const set = (k) => (e) => setTxt((t) => ({ ...t, [k]: e.target.value }));
 
   useEffect(() => {
-    sb().from('imoveis').select('codigo,titulo,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,fotos,status').in('status', ['disponivel', 'reservado', 'rascunho']).order('codigo', { ascending: false })
+    sb().from('imoveis').select('codigo,titulo,resumo,destaques,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,fotos,status').in('status', ['disponivel', 'reservado', 'rascunho']).order('codigo', { ascending: false })
       .then(({ data }) => setImoveis(data || []));
   }, []);
   useEffect(() => {
     if (!im) return;
     setFotos((im.fotos || []).slice(0, 8));
-    setTxt({ ...vazio, rotulo: ROTULOS_PADRAO(im), titulo: im.bairro || '' });
+    setTxt({ ...vazio, rotulo: ROTULOS_PADRAO(im), titulo: im.bairro || '', ...textosPadrao(im) });
   }, [cod]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = tipo === 'carrossel' ? Math.min(10, Math.max(2, fotos.length + 1)) : 1;

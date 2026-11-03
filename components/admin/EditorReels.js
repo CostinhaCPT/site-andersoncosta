@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { sb } from '@/lib/admin/cliente';
 import { brl } from '@/lib/admin/crm';
-import { absoluta, carregarFontes, cobrir, desenharCapa, desenharFim, desenharLegendaCena, fichaPadrao, imagem } from '@/lib/admin/arte';
+import { absoluta, carregarFontes, cobrir, desenharCapa, desenharFim, desenharLegendaCena, fichaPadrao, imagem, textosPadrao } from '@/lib/admin/arte';
 import { enviarArquivo, meta, salvarCriativo } from '@/lib/admin/estudio';
 
 const W = 1080, H = 1920, FPS = 30, FADE = 0.3;
@@ -40,13 +40,13 @@ export default function EditorReels({ aoSalvar }) {
   const set = (k) => (e) => setTxt((t) => ({ ...t, [k]: e.target.value }));
 
   useEffect(() => {
-    sb().from('imoveis').select('codigo,titulo,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,fotos,status').in('status', ['disponivel', 'reservado', 'rascunho']).order('codigo', { ascending: false })
+    sb().from('imoveis').select('codigo,titulo,resumo,destaques,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,fotos,status').in('status', ['disponivel', 'reservado', 'rascunho']).order('codigo', { ascending: false })
       .then(({ data }) => setImoveis(data || []));
   }, []);
   useEffect(() => {
     if (!im) return;
     const f = im.fotos || [];
-    setTxt((t) => ({ ...t, rotulo: im.terreno >= 600 && !/apart/i.test(im.tipo || '') ? `Terreno de ${Number(im.terreno).toLocaleString('pt-BR')} m²` : /apart/i.test(im.tipo || '') ? 'Apartamento' : 'Casa ampla', titulo: im.bairro || '', ambientes: '', localizacao: '', legenda: '' }));
+    setTxt((t) => ({ ...t, rotulo: im.terreno >= 600 && !/apart/i.test(im.tipo || '') ? `Terreno de ${Number(im.terreno).toLocaleString('pt-BR')} m²` : /apart/i.test(im.tipo || '') ? 'Apartamento' : 'Casa ampla', titulo: im.bairro || '', ...textosPadrao(im), legenda: '' }));
     setCenas([nova({ tipo: 'capa', src: f[0], dur: 3.5 }), ...f.slice(1, 7).map((s) => nova({ tipo: 'foto', src: s, dur: 2.2 })), nova({ tipo: 'fim', src: f[1] || f[0], dur: 3 })]);
     setSaida(null);
   }, [cod]); // eslint-disable-line react-hooks/exhaustive-deps
