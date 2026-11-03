@@ -5,7 +5,7 @@ import { STATUS, TIPOS, proximoCodigo } from '@/lib/admin/opcoes';
 import { brl, miniatura } from '@/lib/format';
 import Editor from './Editor';
 
-const COLUNAS = 'id,codigo,slug,status,titulo,resumo,descricao,destaques,atencao,tipo,cidade,bairro,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,condominio,iptu,aceita_permuta,aceita_financiamento,perfil_ideal,fotos,video,origem,codigo_parceiro,ref_m2,ref_amostra,destaque,visita_exige_proprietario,atualizado_em,proprietario_id,campos';
+const COLUNAS = 'id,codigo,slug,status,titulo,resumo,descricao,destaques,atencao,tipo,cidade,bairro,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,condominio,iptu,aceita_permuta,aceita_financiamento,perfil_ideal,fotos,video,origem,codigo_parceiro,ref_m2,ref_amostra,destaque,visita_exige_proprietario,atualizado_em,proprietario_id,parceiro_id,relatorio_mensal,campos';
 const rotulo = (lista, v) => (lista.find((x) => x[0] === v) || [v, v])[1];
 
 export default function Imoveis() {

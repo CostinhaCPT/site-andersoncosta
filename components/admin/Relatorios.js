@@ -19,7 +19,7 @@ export default function Relatorios() {
   const carregar = () => sb().from('relatorios').select('id,imovel_codigo,inicio,fim,status,criado_em,liberado_em').order('criado_em', { ascending: false }).limit(60).then(({ data }) => setLista(data || []));
   useEffect(() => {
     carregar();
-    sb().from('imoveis').select('codigo,titulo,proprietario_id').in('status', ['disponivel', 'reservado']).order('codigo', { ascending: false }).then(({ data }) => setImoveis(data || []));
+    sb().from('imoveis').select('codigo,titulo,proprietario_id,parceiro_id,relatorio_mensal').in('status', ['disponivel', 'reservado']).order('codigo', { ascending: false }).then(({ data }) => setImoveis(data || []));
   }, []);
   const criar = async (e) => {
     e.preventDefault(); setMsg('');
@@ -31,11 +31,11 @@ export default function Relatorios() {
     carregar(); setAberto(data.id);
   };
   if (aberto) return <section className="adm-pagina"><Relatorio id={aberto} aoFechar={() => { setAberto(null); carregar(); }} /></section>;
-  const semDono = imoveis.filter((i) => !i.proprietario_id).length;
+  const semDono = imoveis.filter((i) => i.relatorio_mensal !== false && !i.proprietario_id && !i.parceiro_id).length;
   return (
     <section className="adm-pagina">
-      <div className="adm-cabeca"><div><h1>Relatórios do proprietário</h1><p className="adm-sub">Todo dia 1 sai um rascunho do mês para cada imóvel com proprietário ligado. Você revisa, libera e envia.</p></div></div>
-      {semDono > 0 && <p className="adm-msg">{semDono} imóvel(is) à venda sem proprietário ligado não entram no automático. Ligue o proprietário no cadastro do imóvel.</p>}
+      <div className="adm-cabeca"><div><h1>Relatórios do proprietário</h1><p className="adm-sub">Todo dia 1 sai um rascunho do mês para cada imóvel com proprietário ou parceiro ligado. Você revisa, libera e envia.</p></div></div>
+      {semDono > 0 && <p className="adm-msg">{semDono} imóvel(is) à venda sem proprietário nem parceiro ligado não entram no automático. No cadastro do imóvel, ligue um dos dois, ou desmarque "Gerar relatório mensal". Você ainda pode gerar o relatório na mão e enviar o link para quem quiser.</p>}
       <form className="adm-bloco adm-grade2" onSubmit={criar}>
         <label className="adm-campo"><span>Imóvel</span><select value={novo.cod} onChange={(e) => setNovo({ ...novo, cod: e.target.value })}><option value="">Escolha</option>{imoveis.map((i) => <option key={i.codigo} value={i.codigo}>{i.codigo} · {i.titulo}</option>)}</select></label>
         <span className="adm-linha">
@@ -67,8 +67,9 @@ function Relatorio({ id, aoFechar }) {
   const carregar = async () => {
     const { data } = await sb().from('relatorios').select('*').eq('id', id).single();
     setR(data); setTexto(data?.texto || '');
-    const { data: im } = await sb().from('imoveis').select('proprietario_id').eq('codigo', data.imovel_codigo).maybeSingle();
-    if (im?.proprietario_id) sb().from('contatos').select('id,nome,whatsapp').eq('id', im.proprietario_id).maybeSingle().then(({ data: c }) => setDono(c));
+    const { data: im } = await sb().from('imoveis').select('proprietario_id,parceiro_id').eq('codigo', data.imovel_codigo).maybeSingle();
+    const alvo = im?.proprietario_id || im?.parceiro_id;
+    if (alvo) sb().from('contatos').select('id,nome,whatsapp').eq('id', alvo).maybeSingle().then(({ data: c }) => setDono(c && { ...c, parceiro: !im.proprietario_id }));
   };
   useEffect(() => { carregar(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!r) return <p className="adm-sub">Carregando…</p>;
@@ -96,7 +97,10 @@ function Relatorio({ id, aoFechar }) {
   };
   const recolher = async () => { await salvar({ status: 'rascunho' }); setMsg('Link desativado.'); };
   const investimento = !!r.opcoes?.mostrar_investimento;
-  const msgWhats = `Olá${dono?.nome ? `, ${dono.nome.split(' ')[0]}` : ''}! Segue o relatório do seu imóvel (${r.imovel_codigo}) com tudo o que aconteceu no período: divulgação, interessados, visitas e a minha leitura do mercado.\n${link}`;
+  const nome1 = dono?.nome ? `, ${dono.nome.split(' ')[0]}` : '';
+  const msgWhats = dono?.parceiro
+    ? `Olá${nome1}! Segue o relatório do imóvel ${r.imovel_codigo} com o trabalho de divulgação do período: alcance, interessados, visitas e a minha leitura do mercado. Fique à vontade para repassar ao proprietário.\n${link}`
+    : `Olá${nome1}! Segue o relatório do seu imóvel (${r.imovel_codigo}) com tudo o que aconteceu no período: divulgação, interessados, visitas e a minha leitura do mercado.\n${link}`;
   const copiar = async (t) => { try { await navigator.clipboard.writeText(t); setMsg('Copiado.'); } catch { setMsg(t); } };
   return (
     <div>
@@ -118,7 +122,7 @@ function Relatorio({ id, aoFechar }) {
         </div>
         {r.status === 'liberado' && (
           <div className="adm-wa-acoes">
-            {dono?.whatsapp ? <a className="adm-btn adm-whats" href={`https://wa.me/${dono.whatsapp}?text=${encodeURIComponent(msgWhats)}`} target="_blank" rel="noopener">Enviar para {dono.nome?.split(' ')[0] || 'o proprietário'} no WhatsApp</a>
+            {dono?.whatsapp ? <a className="adm-btn adm-whats" href={`https://wa.me/${dono.whatsapp}?text=${encodeURIComponent(msgWhats)}`} target="_blank" rel="noopener">Enviar para {dono.nome?.split(' ')[0] || (dono.parceiro ? 'o parceiro' : 'o proprietário')}{dono.parceiro ? ' (parceiro)' : ''} no WhatsApp</a>
               : <button className="adm-btn" onClick={() => copiar(msgWhats)}>Copiar mensagem com o link</button>}
             <button className="adm-link" onClick={() => copiar(link)}>Copiar só o link</button>
           </div>

@@ -267,10 +267,10 @@ async function gerarTextos(body: Record<string, any>) {
   if (!im) throw new ErroMeta("Imóvel não encontrado.");
   const ferramenta = {
     name: "textos_post", description: "Textos da peça no padrão do Instagram do Anderson.",
-    input_schema: { type: "object", required: ["rotulo", "ambientes", "diferencial", "legenda"], properties: {
-      rotulo: { type: "string", description: "Rótulo curto que vai acima do bairro na capa, 2 palavras, ex.: Casa ampla, Casa mobiliada, Casa térrea, Apartamento novo." },
-      ambientes: { type: "string", description: "Linha 'Ambientes' da capa: uma frase de até 18 palavras sobre a distribuição dos ambientes, terminando com ponto." },
-      diferencial: { type: "string", description: "Última linha da capa: o maior diferencial do imóvel em uma frase de até 24 palavras, com número quando houver (ex.: terreno de 317m²), terminando com ponto." },
+    input_schema: { type: "object", required: ["rotulo", "ambientes", "localizacao", "legenda"], properties: {
+      rotulo: { type: "string", description: "Destaque curto que vai acima do bairro na capa, até 28 caracteres, o maior trunfo do imóvel com número quando houver. Ex.: Mais de 1200 m² de terreno, Casa mobiliada, Casa térrea nova, Vista para a cidade (só se estiver nos fatos)." },
+      ambientes: { type: "string", description: "Linha 'Ambientes' da capa: 2 frases curtas, até 22 palavras no total, sobre os ambientes e para quem a casa serve. Ex.: Casa ampla com excelente padrão construtivo e espaço externo para ampliação. Perfeita para famílias que buscam conforto e qualidade." },
+      localizacao: { type: "string", description: "Linha 'Localização' da capa: 1 frase de até 24 palavras começando com 'Situada'. Distâncias e pontos de referência só se estiverem nos fatos ou nas notas; se não houver, fale do bairro e da cidade sem números." },
       legenda: { type: "string", description: "Legenda completa seguindo o padrão das regras." },
       palavra_chave: { type: "string", description: "Opcional: uma palavra em maiúsculas para o comentário virar mensagem automática (ex.: o nome do bairro sem espaço). Deixe vazio se não fizer sentido." },
       resposta_dm: { type: "string", description: "Mensagem automática para quem comentar: curta, cordial, com o link do imóvel." },
@@ -285,7 +285,7 @@ async function gerarTextos(body: Record<string, any>) {
   if (!r.ok) throw new ErroMeta("Falha na IA de textos.");
   const t = j.content?.find((b: any) => b.type === "tool_use")?.input ?? {};
   const limpa = (s: unknown) => String(s ?? "").replace(/[ \t]*[—–][ \t]*/g, ", ").trim();
-  return { rotulo: limpa(t.rotulo), ambientes: limpa(t.ambientes), diferencial: limpa(t.diferencial), legenda: limpa(t.legenda), palavra_chave: limpa(t.palavra_chave).toUpperCase().replace(/[^A-Z0-9À-Ú]/g, "").slice(0, 20), resposta_dm: limpa(t.resposta_dm) };
+  return { rotulo: limpa(t.rotulo), ambientes: limpa(t.ambientes), localizacao: limpa(t.localizacao), legenda: limpa(t.legenda), palavra_chave: limpa(t.palavra_chave).toUpperCase().replace(/[^A-Z0-9À-Ú]/g, "").slice(0, 20), resposta_dm: limpa(t.resposta_dm) };
 }
 
 // ------------------------------------------------------------------ comentário vira mensagem

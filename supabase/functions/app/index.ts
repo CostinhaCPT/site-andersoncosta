@@ -278,7 +278,7 @@ async function aplicarRevisao(body: Record<string, any>) {
 // ------------------------------------------------------------------ servidor
 
 // ------------------------------------------------------------------ relatório do proprietário
-const REGRAS_RELATORIO = `Você escreve, na primeira pessoa e com a voz de Anderson Costa (corretor, CRECI SC 68594, Jaraguá do Sul), a parte de análise do relatório mensal que ele envia ao proprietário de um imóvel que está vendendo.
+const REGRAS_RELATORIO = `Você escreve, na primeira pessoa e com a voz de Anderson Costa (corretor, CRECI SC 68594, Jaraguá do Sul), a parte de análise do relatório mensal de um imóvel que ele está vendendo. O leitor é indicado na mensagem (proprietário ou corretor parceiro).
 Regras: use só os números enviados, sem inventar nada. Nunca use travessão. Tom profissional, próximo e franco, sem promessas de venda nem prazos. Nada de nomes, telefones ou dados de compradores: fale de "um casal", "uma família", "um investidor".
 Estrutura em 4 blocos curtos, com estes títulos exatos em linhas próprias:
 O que fiz neste período
@@ -292,7 +292,7 @@ async function textoRelatorio(id: string) {
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({ model: await modelo(), max_tokens: 1200, system: REGRAS_RELATORIO,
-      messages: [{ role: "user", content: `Período: ${r.inicio} a ${r.fim}.\nDados:\n${JSON.stringify(r.dados)}` }] }),
+      messages: [{ role: "user", content: `Período: ${r.inicio} a ${r.fim}.\n${r.dados?.imovel?.proprietario ? "Leitor: o proprietário." : r.dados?.imovel?.parceiro ? "Leitor: o corretor parceiro que atende o proprietário (ele vai repassar). Trate-o como colega de profissão." : "Leitor: o proprietário ou quem o representa."}\nDados:\n${JSON.stringify(r.dados)}` }] }),
   });
   const j = await resp.json();
   if (!resp.ok) throw new Error("A IA não respondeu. Tente de novo.");

@@ -106,7 +106,7 @@ export default function Editor({ imovel, todos, aoFechar }) {
       cidade: f.cidade, bairro: (f.bairro || '').trim(), preco_visivel: f.preco_visivel !== false,
       aceita_permuta: !!f.aceita_permuta, aceita_financiamento: !!f.aceita_financiamento, perfil_ideal: f.perfil_ideal || null,
       fotos: f.fotos, video: videoEmbed(f.video), origem: f.origem || null, codigo_parceiro: f.codigo_parceiro || null,
-      destaque: !!f.destaque, visita_exige_proprietario: !!f.visita_exige_proprietario, proprietario_id: f.proprietario_id || null, campos: f.campos || {}, atualizado_em: new Date().toISOString(),
+      destaque: !!f.destaque, visita_exige_proprietario: !!f.visita_exige_proprietario, proprietario_id: f.proprietario_id || null, parceiro_id: f.parceiro_id || null, relatorio_mensal: f.relatorio_mensal !== false, campos: f.campos || {}, atualizado_em: new Date().toISOString(),
     };
     for (const k of NUMEROS) dados[k] = paraNumero(f[k]);
     if (!dados.ref_m2) { dados.ref_m2 = refSugerida.ref_m2; dados.ref_amostra = refSugerida.ref_amostra; }
@@ -183,6 +183,8 @@ export default function Editor({ imovel, todos, aoFechar }) {
           <label className="adm-check"><input type="checkbox" checked={!!f.aceita_permuta} onChange={set('aceita_permuta')} /> Aceita permuta</label>
           <label className="adm-check"><input type="checkbox" checked={!!f.visita_exige_proprietario} onChange={set('visita_exige_proprietario')} /> Visita precisa combinar com o proprietário (o chat não confirma sozinho)</label>
           <Proprietario valor={f.proprietario_id} aoMudar={(id) => setF({ ...f, proprietario_id: id })} />
+          <Proprietario rotulo="Corretor ou imobiliária parceira (quando o dono é atendido por outro corretor)" papel="parceiro" valor={f.parceiro_id} aoMudar={(id) => setF({ ...f, parceiro_id: id })} />
+          <label className="adm-check"><input type="checkbox" checked={f.relatorio_mensal !== false} onChange={set('relatorio_mensal')} /> Gerar relatório mensal (vai para o proprietário ou, se não houver, para o parceiro)</label>
           <CamposExtras objeto="imovel" valores={f.campos || {}} onChange={(campos) => setF({ ...f, campos })} />
         </div>
       </Bloco>
@@ -310,7 +312,7 @@ function Fotos({ codigo, fotos, mudar }) {
 }
 
 /** Owner picker: search existing contacts or create one on the spot. Private: never shown on the site. */
-function Proprietario({ valor, aoMudar }) {
+function Proprietario({ valor, aoMudar, rotulo = 'Proprietário (só você vê)', papel = 'proprietario' }) {
   const [atual, setAtual] = useState(null);
   const [busca, setBusca] = useState('');
   const [achados, setAchados] = useState([]);
@@ -327,12 +329,12 @@ function Proprietario({ valor, aoMudar }) {
   const criar = async () => {
     const nome = busca.trim(); if (!nome) return;
     const d = nome.replace(/\D/g, '');
-    const { data, error } = await sb().from('contatos').insert(d.length >= 10 ? { whatsapp: d.length <= 11 ? '55' + d : d, papeis: ['proprietario'] } : { nome, papeis: ['proprietario'] }).select('id,nome,whatsapp').single();
+    const { data, error } = await sb().from('contatos').insert(d.length >= 10 ? { whatsapp: d.length <= 11 ? '55' + d : d, papeis: [papel] } : { nome, papeis: [papel] }).select('id,nome,whatsapp').single();
     if (!error) { aoMudar(data.id); setBusca(''); }
   };
   return (
     <div className="adm-campo">
-      <span>Proprietário (só você vê)</span>
+      <span>{rotulo}</span>
       {atual ? <p className="adm-msg">{atual.nome || atual.whatsapp} <button type="button" className="adm-link" onClick={() => aoMudar(null)}>trocar</button></p> : <>
         <input placeholder="Buscar contato pelo nome ou telefone" value={busca} onChange={(e) => setBusca(e.target.value)} />
         {busca.length >= 2 && <div className="adm-sugestoes">

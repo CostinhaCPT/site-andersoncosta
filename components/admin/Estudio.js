@@ -7,9 +7,9 @@ import { desenharCapa, desenharFim, desenharFoto, fichaPadrao } from '@/lib/admi
 import EditorReels from './EditorReels';
 import { meta, enviarArquivo, salvarCriativo } from '@/lib/admin/estudio';
 
-const TIPOS = { carrossel: ['Carrossel', 1080, 1350], post: ['Post', 1080, 1350], story: ['Story', 1080, 1920], reel: ['Reels (vídeo pronto)', 1080, 1920] };
+const TIPOS = { carrossel: ['Carrossel', 1080, 1440], post: ['Post', 1080, 1440], story: ['Story', 1080, 1920], reel: ['Reels (vídeo pronto)', 1080, 1920] };
 const STATUS = { rascunho: 'Rascunho', agendado: 'Agendado', aguardando: 'Esperando você postar', publicando: 'Publicando', publicado: 'Publicado', erro: 'Erro', arquivado: 'Arquivado' };
-const ROTULOS_PADRAO = (im) => (/apart/i.test(im?.tipo || '') ? 'Apartamento' : /terreno/i.test(im?.tipo || '') ? 'Terreno' : 'Casa');
+const ROTULOS_PADRAO = (im) => (im?.terreno >= 600 && !/apart/i.test(im?.tipo || '') ? `Terreno de ${Number(im.terreno).toLocaleString('pt-BR')} m²` : /apart/i.test(im?.tipo || '') ? 'Apartamento' : 'Casa ampla');
 
 export default function Estudio() {
   const [sub, setSub] = useState('criar');
@@ -49,7 +49,9 @@ export default function Estudio() {
 
 // ------------------------------------------------------------------ desenho das peças (padrão do Instagram do Anderson)
 async function desenhar(tipo, i, total, d) {
-  const [, W, H] = TIPOS[tipo === 'reel' ? 'story' : tipo];
+  const [, W, H0] = TIPOS[tipo === 'reel' ? 'story' : tipo];
+  // 3:4 como no modelo; quando a Meta publica sozinha, 4:5 (limite da API para imagens)
+  const H = d.automatico && H0 === 1440 ? 1350 : H0;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
   const capa = { im: d.im, foto: d.fotos[0], rotulo: d.rotulo, titulo: d.titulo, preco: d.preco, ficha: fichaPadrao(d.im, d) };
@@ -70,7 +72,7 @@ function Criar({ conectado, aoSalvar, aoReels }) {
   const [tipo, setTipo] = useState('carrossel');
   const [fotos, setFotos] = useState([]);
   const [video, setVideo] = useState(null);
-  const vazio = { rotulo: '', titulo: '', ambientes: '', diferencial: '', linha1: 'Entre em contato', linha2: 'e saiba mais.', legenda: '', palavra_chave: '', resposta_dm: '' };
+  const vazio = { rotulo: '', titulo: '', ambientes: '', localizacao: '', linha1: 'Entre em contato', linha2: 'e saiba mais.', legenda: '', palavra_chave: '', resposta_dm: '' };
   const [txt, setTxt] = useState(vazio);
   const [mostrarPreco, setMostrarPreco] = useState(true);
   const [modo, setModo] = useState('assistido');
@@ -93,7 +95,7 @@ function Criar({ conectado, aoSalvar, aoReels }) {
   }, [cod]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = tipo === 'carrossel' ? Math.min(10, Math.max(2, fotos.length + 1)) : 1;
-  const dados = useMemo(() => im && ({ im, fotos, ...txt, preco: mostrarPreco && im.preco_visivel !== false && im.preco ? brl(im.preco) : '' }), [im, fotos, txt, mostrarPreco]);
+  const dados = useMemo(() => im && ({ im, fotos, ...txt, automatico: modo === 'automatico', preco: mostrarPreco && im.preco_visivel !== false && im.preco ? brl(im.preco) : '' }), [im, fotos, txt, mostrarPreco, modo]);
   const desenharTudo = useCallback(async () => {
     if (!dados || tipo === 'reel' || !fotos.length) { setPrevias([]); return; }
     const cvs = []; for (let i = 0; i < total; i++) cvs.push(await desenhar(tipo, i, total, dados));
@@ -126,7 +128,7 @@ function Criar({ conectado, aoSalvar, aoReels }) {
         for (let i = 0; i < previas.length; i++) arquivos.push(await enviarArquivo(id, `${String(i + 1).padStart(2, '0')}.jpg`, await blobDe(previas[i]), 'image/jpeg'));
       }
       const c = await salvarCriativo({ id, cod, tipo, titulo: `${txt.rotulo} ${txt.titulo}`.trim() || im.titulo, arquivos, legenda: txt.legenda, redes, modo, agora, quando,
-        palavra_chave: txt.palavra_chave, resposta_dm: txt.resposta_dm, dados: { rotulo: txt.rotulo, titulo: txt.titulo, ambientes: txt.ambientes, diferencial: txt.diferencial } });
+        palavra_chave: txt.palavra_chave, resposta_dm: txt.resposta_dm, dados: { rotulo: txt.rotulo, titulo: txt.titulo, ambientes: txt.ambientes, localizacao: txt.localizacao } });
       setMsg(agora ? (modo === 'assistido' ? 'Pronto. Abrindo a tela de postagem…' : 'Publicado.') : modo === 'assistido' ? 'Agendado. No horário o app te avisa para postar com música.' : 'Agendado. Sai sozinho no horário.');
       setTimeout(() => aoSalvar(c), 700);
     } catch (e) { setMsg('Não deu certo: ' + e.message); }
@@ -163,11 +165,11 @@ function Criar({ conectado, aoSalvar, aoReels }) {
             {tipo !== 'reel' && (
               <>
                 <div className="adm-grade2">
-                  <label className="adm-campo"><span>Rótulo (acima, à esquerda)</span><input value={txt.rotulo} onChange={set('rotulo')} placeholder="Casa ampla" /></label>
+                  <label className="adm-campo"><span>Destaque (acima do bairro, à esquerda)</span><input value={txt.rotulo} onChange={set('rotulo')} placeholder="Mais de 1200 m² de terreno" /></label>
                   <label className="adm-campo"><span>Título grande (bairro)</span><input value={txt.titulo} onChange={set('titulo')} placeholder={im.bairro} /></label>
                 </div>
-                <label className="adm-campo"><span>Ambientes</span><input value={txt.ambientes} onChange={set('ambientes')} placeholder="Living integrado, cozinha com ilha e área gourmet." /></label>
-                <label className="adm-campo"><span>Diferencial (última linha da capa)</span><input value={txt.diferencial} onChange={set('diferencial')} placeholder="Terreno amplo com espaço para piscina." /></label>
+                <label className="adm-campo"><span>Ambientes</span><textarea rows={2} value={txt.ambientes} onChange={set('ambientes')} placeholder="Casa ampla com excelente padrão construtivo e espaço externo para ampliação." /></label>
+                <label className="adm-campo"><span>Localização</span><textarea rows={2} value={txt.localizacao} onChange={set('localizacao')} placeholder="Situada em uma região estratégica, a 15 minutos do Centro de Jaraguá do Sul." /></label>
                 {tipo === 'carrossel' && (
                   <div className="adm-grade2">
                     <label className="adm-campo"><span>Último slide, linha 1</span><input value={txt.linha1} onChange={set('linha1')} /></label>

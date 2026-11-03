@@ -28,7 +28,9 @@ export default function RelatorioVista({ dados: d, texto, inicio, fim }) {
         <div>
           <span className="rel-eyebrow">{i.codigo} · {i.bairro}, {i.cidade}</span>
           <h1>{i.titulo}</h1>
-          {i.proprietario && <p>Olá, {i.proprietario}. Aqui está o resumo de tudo o que aconteceu com o seu imóvel no período.</p>}
+          <p>{i.proprietario ? `Olá, ${i.proprietario}. Aqui está o resumo de tudo o que aconteceu com o seu imóvel no período.`
+            : i.parceiro ? `Olá, ${i.parceiro}. Aqui está o resumo do trabalho de divulgação deste imóvel no período, para você acompanhar e repassar ao proprietário.`
+            : 'Aqui está o resumo de tudo o que aconteceu com o imóvel no período.'}</p>
           <p className="rel-preco">{brl(i.preco)}{i.preco_m2 ? <small> · {brl(i.preco_m2)}/m²</small> : null}</p>
         </div>
       </section>

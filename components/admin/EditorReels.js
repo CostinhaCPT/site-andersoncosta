@@ -23,7 +23,7 @@ export default function EditorReels({ aoSalvar }) {
   const [imoveis, setImoveis] = useState([]);
   const [cod, setCod] = useState('');
   const [cenas, setCenas] = useState([]);
-  const [txt, setTxt] = useState({ rotulo: '', titulo: '', ambientes: '', diferencial: '', linha1: 'Entre em contato', linha2: 'e saiba mais.', legenda: '', palavra_chave: '', resposta_dm: '' });
+  const [txt, setTxt] = useState({ rotulo: '', titulo: '', ambientes: '', localizacao: '', linha1: 'Entre em contato', linha2: 'e saiba mais.', legenda: '', palavra_chave: '', resposta_dm: '' });
   const [mostrarPreco, setMostrarPreco] = useState(true);
   const [somVideos, setSomVideos] = useState(false);
   const [trilha, setTrilha] = useState(null);
@@ -46,7 +46,7 @@ export default function EditorReels({ aoSalvar }) {
   useEffect(() => {
     if (!im) return;
     const f = im.fotos || [];
-    setTxt((t) => ({ ...t, rotulo: /apart/i.test(im.tipo || '') ? 'Apartamento' : 'Casa', titulo: im.bairro || '', ambientes: '', diferencial: '', legenda: '' }));
+    setTxt((t) => ({ ...t, rotulo: im.terreno >= 600 && !/apart/i.test(im.tipo || '') ? `Terreno de ${Number(im.terreno).toLocaleString('pt-BR')} m²` : /apart/i.test(im.tipo || '') ? 'Apartamento' : 'Casa ampla', titulo: im.bairro || '', ambientes: '', localizacao: '', legenda: '' }));
     setCenas([nova({ tipo: 'capa', src: f[0], dur: 3.5 }), ...f.slice(1, 7).map((s) => nova({ tipo: 'foto', src: s, dur: 2.2 })), nova({ tipo: 'fim', src: f[1] || f[0], dur: 3 })]);
     setSaida(null);
   }, [cod]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -195,7 +195,7 @@ export default function EditorReels({ aoSalvar }) {
       const id = crypto.randomUUID();
       const arq = await enviarArquivo(id, 'video.mp4', saida.blob, 'video/mp4');
       const c = await salvarCriativo({ id, cod, tipo: 'reel', titulo: `Reels ${txt.titulo}`.trim(), arquivos: [arq], legenda: txt.legenda, redes: ['instagram'], modo: 'assistido', agora, quando,
-        palavra_chave: txt.palavra_chave, resposta_dm: txt.resposta_dm, dados: { rotulo: txt.rotulo, titulo: txt.titulo, ambientes: txt.ambientes, diferencial: txt.diferencial } });
+        palavra_chave: txt.palavra_chave, resposta_dm: txt.resposta_dm, dados: { rotulo: txt.rotulo, titulo: txt.titulo, ambientes: txt.ambientes, localizacao: txt.localizacao } });
       setMsg(agora ? 'Pronto.' : 'Agendado. No horário o app te avisa para postar com música.');
       setTimeout(() => aoSalvar(c), 600);
     } catch (e) { setMsg('Não deu certo: ' + e.message); }
@@ -239,11 +239,11 @@ export default function EditorReels({ aoSalvar }) {
             <div className="adm-bloco">
               <div className="adm-bloco-topo"><h2>Textos</h2><button className="adm-btn" disabled={ocupado === 'textos'} onClick={gerarTextos}>{ocupado === 'textos' ? 'Escrevendo…' : '✦ Escrever com IA'}</button></div>
               <div className="adm-grade2">
-                <label className="adm-campo"><span>Rótulo da capa</span><input value={txt.rotulo} onChange={set('rotulo')} /></label>
+                <label className="adm-campo"><span>Destaque da capa</span><input value={txt.rotulo} onChange={set('rotulo')} /></label>
                 <label className="adm-campo"><span>Título grande (bairro)</span><input value={txt.titulo} onChange={set('titulo')} /></label>
               </div>
               <label className="adm-campo"><span>Ambientes</span><input value={txt.ambientes} onChange={set('ambientes')} /></label>
-              <label className="adm-campo"><span>Diferencial</span><input value={txt.diferencial} onChange={set('diferencial')} /></label>
+              <label className="adm-campo"><span>Localização</span><input value={txt.localizacao} onChange={set('localizacao')} /></label>
               <div className="adm-grade2">
                 <label className="adm-campo"><span>Encerramento, linha 1</span><input value={txt.linha1} onChange={set('linha1')} /></label>
                 <label className="adm-campo"><span>Encerramento, linha 2</span><input value={txt.linha2} onChange={set('linha2')} /></label>
