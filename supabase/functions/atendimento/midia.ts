@@ -154,23 +154,36 @@ async function sintetizarEleven(input: string, formato: "mp3" | "opus"): Promise
 
 const GOOGLE_TTS = Deno.env.get("GOOGLE_TTS_KEY") ?? "";
 const GOOGLE_VOZ = Deno.env.get("GOOGLE_TTS_VOICE") ?? "pt-BR-Chirp3-HD-Aoede";
+// Gemini TTS: a voz mais natural do Google, com direção de tom. "chirp" no GOOGLE_TTS_MODEL volta para a Chirp 3 HD (cota grátis).
+const GOOGLE_MODELO = Deno.env.get("GOOGLE_TTS_MODEL") ?? "gemini-2.5-flash-tts";
+const GOOGLE_VOZ_GEMINI = Deno.env.get("GOOGLE_TTS_GEMINI_VOICE") ?? "Sulafat";
+const DIRECAO_VOZ = "Você é uma atendente brasileira de uma imobiliária em Santa Catarina mandando um áudio de WhatsApp para um cliente. " +
+  "Fale de forma calorosa, leve e natural, como quem conversa, com sorriso na voz. Ritmo de conversa, pausas curtas entre as ideias, " +
+  "sem tom de locutora nem de leitura. Sotaque brasileiro neutro.";
 
-/** Google Cloud Text-to-Speech (Chirp 3 HD): voz natural, 1 milhão de caracteres grátis por mês, OGG/Opus nativo. */
-async function sintetizarGoogle(input: string, formato: "mp3" | "opus"): Promise<Uint8Array | null> {
-  if (!GOOGLE_TTS) return null;
+async function chamarGoogle(corpo: Record<string, unknown>) {
   const r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(GOOGLE_TTS)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      input: { text: input },
-      voice: { languageCode: "pt-BR", name: GOOGLE_VOZ },
-      audioConfig: { audioEncoding: formato === "opus" ? "OGG_OPUS" : "MP3" },
-    }),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
   });
   const j = await r.json().catch(() => ({}));
   if (r.ok && j.audioContent) return Uint8Array.from(atob(j.audioContent), (c) => c.charCodeAt(0));
-  console.error("voz google", r.status, JSON.stringify(j).slice(0, 300));
+  console.error("voz google", corpo.voice && (corpo.voice as any).name, r.status, JSON.stringify(j).slice(0, 300));
   return null;
+}
+
+/** Google Cloud Text-to-Speech: Gemini TTS (mais natural) e, se falhar, Chirp 3 HD. Sai em OGG/Opus, o formato da mensagem de voz. */
+async function sintetizarGoogle(input: string, formato: "mp3" | "opus"): Promise<Uint8Array | null> {
+  if (!GOOGLE_TTS) return null;
+  const audioConfig = { audioEncoding: formato === "opus" ? "OGG_OPUS" : "MP3" };
+  if (GOOGLE_MODELO.startsWith("gemini")) {
+    const g = await chamarGoogle({
+      input: { text: input, prompt: DIRECAO_VOZ },
+      voice: { languageCode: "pt-BR", name: GOOGLE_VOZ_GEMINI, model_name: GOOGLE_MODELO },
+      audioConfig,
+    });
+    if (g) return g;
+  }
+  return chamarGoogle({ input: { text: input }, voice: { languageCode: "pt-BR", name: GOOGLE_VOZ }, audioConfig });
 }
 
 /** Ordem: Google (melhor custo), ElevenLabs (se configurada), OpenAI (reserva). */
