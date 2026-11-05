@@ -22,7 +22,7 @@ export default async function Pagina({ params }) {
   return (
     <div className="pagina-imovel" data-codigo={i.codigo}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
-      <ContarVisita codigo={i.codigo} />
+      <ContarVisita codigo={i.codigo} titulo={i.titulo} />
       <div className="wrap">
         <div className="migalha"><Link href="/imoveis/">Imóveis</Link> / <Link href={`/imoveis/${i.cidadeSlug}/${i.bairroSlug}/`}>{i.bairro}</Link> / {i.tipo}</div>
         <Galeria fotos={i.fotos} titulo={i.titulo} />

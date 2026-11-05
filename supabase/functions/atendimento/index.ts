@@ -811,6 +811,7 @@ const PROMPT_WHATS = `
 
 - Esta conversa acontece no WhatsApp de atendimento do Anderson. Não existe janela de saudação: se esta for sua primeira resposta na conversa, apresente-se em uma frase como assistente virtual do Anderson Costa e já ajude com o que a pessoa escreveu.
 - O WhatsApp da pessoa já é conhecido, é o número desta conversa. Nunca peça o número. Peça só o nome, se ainda não souber.
+- Mensagens que vêm do botão do site terminam com "Código: XXXX". É só um código interno de rastreio: nunca comente nem repita. Se a mensagem citar um imóvel (ref. DM-123 ou o título), comece falando dele.
 - Escreva no máximo 3 mensagens curtas por resposta. Nada de títulos com # nem tabelas. Use *negrito* só se ajudar muito.
 - Ao indicar imóvel, coloque o link completo em linha própria. O WhatsApp mostra a prévia com a foto.
 - oferecer_visita e verificar_horario mostram uma lista tocável. Diga que é só tocar em "Ver horários" logo abaixo e escolher.
@@ -884,11 +885,20 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
   const { data: leads } = await sb.from("leads").select("id, nome, etapa, nao_contatar").in("whatsapp", [...new Set([fone, waId])])
     .order("criado_em", { ascending: false }).limit(1);
   let lead = leads?.[0] ?? null;
+  // Veio do botão do site? A mensagem pronta traz "Código: XXXX", que liga à página, ao imóvel e à campanha
+  const codSite = String(m.text?.body ?? "").match(/C[óo]digo:\s*([A-Z2-9]{4})\b/i)?.[1]?.toUpperCase() ?? null;
+  let clique: Record<string, any> | null = null;
+  if (codSite) {
+    const { data: cl } = await sb.from("automacao_log").select("detalhe").eq("evento", "wa_clique").eq("detalhe->>codigo", codSite)
+      .order("criado_em", { ascending: false }).limit(1);
+    clique = (cl?.[0]?.detalhe as Record<string, any>) ?? null;
+  }
   if (!lead) {
     const nome = String(contato?.profile?.name ?? "").replace(/\s+/g, " ").trim().slice(0, 80) || null;
     const { data, error } = await sb.from("leads").insert({
-      nome, whatsapp: fone, etapa: "novo", canal: "WhatsApp",
-      origem: { canal: "whatsapp", ...(m.referral ? { anuncio: m.referral.source_id, anuncio_tipo: m.referral.source_type, ctwa_clid: m.referral.ctwa_clid, anuncio_titulo: m.referral.headline } : {}) },
+      nome, whatsapp: fone, etapa: "novo", canal: clique ? "Site" : "WhatsApp",
+      origem: { canal: "whatsapp", ...(clique ? { site: true, pagina: clique.pagina, imovel: clique.imovel, ...(clique.utm ?? {}) } : {}),
+        ...(m.referral ? { anuncio: m.referral.source_id, anuncio_tipo: m.referral.source_type, ctwa_clid: m.referral.ctwa_clid, anuncio_titulo: m.referral.headline } : {}) },
     }).select("id, nome, etapa, nao_contatar").single();
     if (error) throw error;
     lead = data;
@@ -898,10 +908,16 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
   let conversa = convs?.[0] ?? null;
   if (!conversa) {
     const { data, error } = await sb.from("conversas").insert({
-      canal: "whatsapp", lead_id: lead!.id, contexto: { wa_id: waId, ...(m.referral ? { referral: m.referral } : {}) },
+      canal: "whatsapp", lead_id: lead!.id, contexto: { wa_id: waId, ...(m.referral ? { referral: m.referral } : {}),
+        ...(clique ? { pagina: clique.pagina, utm: clique.utm ?? {}, ...(clique.imovel ? { imovel: clique.imovel } : {}) } : {}) },
     }).select("*").single();
     if (error) throw error;
     conversa = data;
+  }
+
+  if (clique?.imovel && conversa!.contexto?.imovel !== clique.imovel) {
+    conversa!.contexto = { ...(conversa!.contexto ?? {}), imovel: clique.imovel, pagina: clique.pagina };
+    await sb.from("conversas").update({ contexto: conversa!.contexto }).eq("id", conversa!.id);
   }
 
   // Conteúdo
@@ -1126,6 +1142,17 @@ Deno.serve(async (req) => {
     if (body.acao === "limpar") return json({ apagados: await limparAnexos(sb) }, 200, origin);
     if (body.acao === "abandonos") return json({ avisados: await avisarAbandonos() }, 200, origin);
     if (body.acao === "capi") return json(await enviarCapi(body, req), 200, origin);
+    // Clique no botão de WhatsApp do site: guarda página, imóvel e campanha pelo código que vai na mensagem
+    if (body.acao === "wa_clique") {
+      const cod = String(body.codigo ?? "").toUpperCase();
+      if (!/^[A-Z2-9]{4}$/.test(cod)) return json({ ok: false }, 200, origin);
+      const lim = (v: unknown, n = 300) => (v == null ? null : String(v).slice(0, n));
+      const o = (body.origem && typeof body.origem === "object") ? body.origem : {};
+      const utm = Object.fromEntries(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid", "landing"]
+        .filter((k) => o[k]).map((k) => [k, lim(o[k], 200)]));
+      await sb.from("automacao_log").insert({ evento: "wa_clique", detalhe: { codigo: cod, pagina: lim(body.pagina), imovel: lim(body.imovel, 40), local: lim(body.local, 40), utm } });
+      return json({ ok: true }, 200, origin);
+    }
     // One-time setup of the Resend sending domain, guarded by a token stored in config
     if (body.acao === "setup_resend") {
       const { data: t } = await sb.from("config").select("valor").eq("chave", "setup").maybeSingle();

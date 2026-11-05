@@ -7,5 +7,10 @@ export function BotaoWhats({ texto, dados, className = 'btn btn-whats', children
   return <button className={className} onClick={() => abrirWhats(texto, dados)}><IconeWhats s={18} />{children}</button>;
 }
 export function WhatsFixo() {
-  return <button className="whats-fixo" aria-label="Conversar no WhatsApp" onClick={() => abrirWhats('Olá, Anderson! Vim pelo site e quero conversar sobre imóveis.', { local: 'flutuante' })}><IconeWhats /></button>;
+  const abrir = () => {
+    const im = typeof window !== 'undefined' ? window.__acImovel : null;
+    if (im?.codigo) abrirWhats(`Olá! Vi no site o imóvel "${im.titulo}" (ref. ${im.codigo}) e quero saber mais.`, { local: 'flutuante', imovel: im.codigo });
+    else abrirWhats('Olá, Anderson! Vim pelo site e quero conversar sobre imóveis.', { local: 'flutuante' });
+  };
+  return <button className="whats-fixo" aria-label="Conversar no WhatsApp" onClick={abrir}><IconeWhats /></button>;
 }

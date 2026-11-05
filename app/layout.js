@@ -3,6 +3,7 @@ import Topo from '@/components/Topo';
 import Rodape from '@/components/Rodape';
 import Cookies from '@/components/Cookies';
 import Chat from '@/components/Chat';
+import { WhatsFixo } from '@/components/Whats';
 import Moldura from '@/components/Moldura';
 import { SITE } from '@/lib/site';
 export const metadata = {
@@ -24,7 +25,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         {SITE.gtmId && <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${SITE.gtmId}`} height="0" width="0" style={{ display: 'none', visibility: 'hidden' }} /></noscript>}
-        <Moldura topo={<Topo />} rodape={<Rodape />} extras={<><Chat /><Cookies /></>}>{children}</Moldura>
+        <Moldura topo={<Topo />} rodape={<Rodape />} extras={<>{SITE.webchat ? <Chat /> : <WhatsFixo />}<Cookies /></>}>{children}</Moldura>
       </body>
     </html>
   );
