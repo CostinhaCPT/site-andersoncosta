@@ -131,8 +131,31 @@ export function paraFala(texto: string) {
     .slice(0, 1200);
 }
 
+const ELEVEN = Deno.env.get("ELEVENLABS_API_KEY") ?? "";
+const ELEVEN_VOZ = Deno.env.get("ELEVENLABS_VOICE_ID") ?? "";
+const ELEVEN_MODELO = Deno.env.get("ELEVENLABS_MODEL") ?? "eleven_multilingual_v2";
+
+/** ElevenLabs: voz bem mais natural em português. Usada quando a chave e a voz estão configuradas. */
+async function sintetizarEleven(input: string, formato: "mp3" | "opus"): Promise<Uint8Array | null> {
+  if (!ELEVEN || !ELEVEN_VOZ) return null;
+  const saida = formato === "opus" ? "opus_48000_64" : "mp3_44100_128";
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVEN_VOZ}?output_format=${saida}`, {
+    method: "POST",
+    headers: { "xi-api-key": ELEVEN, "Content-Type": "application/json", Accept: formato === "opus" ? "audio/ogg" : "audio/mpeg" },
+    body: JSON.stringify({
+      text: input, model_id: ELEVEN_MODELO,
+      voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true, speed: 1.0 },
+    }),
+  });
+  if (r.ok) return new Uint8Array(await r.arrayBuffer());
+  console.error("voz elevenlabs", r.status, (await r.text()).slice(0, 300));
+  return null;
+}
+
 export async function sintetizar(texto: string, formato: "mp3" | "opus" = "mp3"): Promise<Uint8Array> {
   const input = paraFala(texto);
+  const eleven = await sintetizarEleven(input, formato);
+  if (eleven) return eleven;
   const tentativas = [
     {
       model: "gpt-4o-mini-tts", voice: "coral", input, response_format: formato,
