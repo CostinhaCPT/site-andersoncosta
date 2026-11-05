@@ -50,6 +50,19 @@ async function enviar(para: string, conteudo: Record<string, unknown>): Promise<
   return { ok: true, wamid: j?.messages?.[0]?.id };
 }
 
+/** Sends a voice note: uploads OGG/Opus audio to the Cloud API and sends it as a voice message. */
+export async function enviarAudio(para: string, ogg: Uint8Array): Promise<Envio> {
+  if (!waConfigurado()) return { ok: false, simulado: true, erro: "whatsapp_nao_configurado" };
+  const fd = new FormData();
+  fd.append("messaging_product", "whatsapp");
+  fd.append("type", "audio/ogg");
+  fd.append("file", new Blob([ogg as BlobPart], { type: "audio/ogg" }), "resposta.ogg");
+  const up = await fetch(`${GRAPH}/${PHONE_ID}/media`, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}` }, body: fd });
+  const j = await up.json().catch(() => ({}));
+  if (!up.ok || !j?.id) { console.error("wa upload audio", up.status, JSON.stringify(j).slice(0, 300)); return { ok: false, erro: j?.error?.message ?? `http ${up.status}` }; }
+  return enviar(para, { type: "audio", audio: { id: j.id, voice: true } });
+}
+
 /** WhatsApp formatting: markdown links and headings do not render there. */
 export function paraWhats(t: string) {
   return t

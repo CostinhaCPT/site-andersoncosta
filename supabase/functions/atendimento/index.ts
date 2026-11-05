@@ -12,7 +12,7 @@ import {
   base64ParaBytes, bytesParaBase64, guardarAnexo, limparAnexos, MAX_AUDIO_BYTES, MAX_IMAGEM_BYTES, sintetizar, transcrever,
 } from "./midia.ts";
 import {
-  assinaturaValida, baixarMidia, enviarHorarios, enviarTexto, foneCanonico, marcarLida, pediuParaParar, VERIFY_TOKEN,
+  assinaturaValida, baixarMidia, enviarAudio, enviarHorarios, enviarTexto, foneCanonico, marcarLida, pediuParaParar, VERIFY_TOKEN,
 } from "./whatsapp.ts";
 import { tick as followupTick } from "./followup.ts";
 
@@ -983,9 +983,23 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
     return;
   }
 
-  const { blocos } = await turno(ctx, atual ?? conversa!, {}, imagem);
-  let enviados = 0;
-  for (const b of blocos) { const e = await enviarTexto(waId, b); if (e.ok) enviados++; }
+  // Quem mandou áudio (dirigindo, no trânsito) recebe a resposta em áudio, e os links vão por escrito
+  const veioAudio = tipo === "audio";
+  const { resposta, blocos } = await turno(ctx, atual ?? conversa!, veioAudio ? { voz: true } : {}, imagem);
+  let enviados = 0, falou = false;
+  if (veioAudio && OPENAI) {
+    try {
+      const ogg = await sintetizar(resposta, "opus");
+      const e = await enviarAudio(waId, ogg);
+      if (e.ok) { enviados++; falou = true; }
+    } catch (e) { console.error("wa voz", e); }
+  }
+  if (falou) {
+    const links = [...new Set(resposta.match(/https?:\/\/\S+/g) ?? [])];
+    if (links.length) { const e = await enviarTexto(waId, (links.length > 1 ? "Os links que comentei:\n" : "O link que comentei:\n") + links.join("\n")); if (e.ok) enviados++; }
+  } else {
+    for (const b of blocos) { const e = await enviarTexto(waId, b); if (e.ok) enviados++; }
+  }
   if (ctx.agenda?.opcoes?.length) {
     const e = await enviarHorarios(waId, ctx.agenda.opcoes, ctx.agenda.situacao && ctx.agenda.situacao !== "sugestao"
       ? "Separei estas opções. Toque em Ver horários e escolha a que fica melhor."
@@ -1026,6 +1040,7 @@ async function turno(
     .replaceAll("{lead}", leadTxt)
     .replaceAll("{saudacao}", String(cfg.chat.saudacao || (ctxIn.saudacao ?? "Oi! Sou a assistente virtual do Anderson Costa. Me conta o que você está procurando que eu te ajudo a encontrar.")).replace(/["{}]/g, "").slice(0, 250))
     + (ctx.canal === "whatsapp" ? PROMPT_WHATS : "")
+    + (ctxIn.voz && ctx.canal === "whatsapp" ? `\n\n## Resposta em áudio\n\nA pessoa mandou áudio, provavelmente está dirigindo ou sem poder ler. Sua resposta vai virar uma mensagem de voz. Escreva como se estivesse falando: frases curtas, sem listas, sem emoji, no máximo dois imóveis, uns 30 a 40 segundos de fala. Fale o bairro, o tipo e o preço por extenso de forma natural, sem códigos. Pode incluir os links ao final, eles irão por escrito em seguida e não serão lidos em voz alta. Termine com uma pergunta simples que dê para responder por áudio.` : "")
     + (extras ? `\n\n## Orientações extras do Anderson\n\nSiga estas orientações dele, desde que não contrariem as regras acima (honestidade, não inventar, assistente virtual, sem travessão):\n${extras}` : "");
 
   const messages: any[] = montarHistorico(hist ?? []);

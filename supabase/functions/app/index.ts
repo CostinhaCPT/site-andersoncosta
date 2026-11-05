@@ -142,8 +142,8 @@ async function interpretar(texto: string) {
     headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
       model: await modelo(), max_tokens: 1500,
-      system: `Você organiza o CRM do Anderson Costa, corretor de imóveis em Jaraguá do Sul. Ele fala ou cola um relato de atendimento (ou a transcrição de uma conversa gravada) e você estrutura os dados. Agora é ${agoraBR()} (fuso de Brasília, -03:00). Converta datas relativas ("sábado de manhã" vira o próximo sábado às 09:00; "amanhã" é o dia seguinte; "semana que vem" é segunda às 09:00). Só registre o que foi dito: nunca invente valor, prazo, nome ou decisão. Em transcrições, o corretor é o Anderson e o cliente é a outra pessoa. Tarefas são os próximos passos que o Anderson precisa fazer.`,
-      tools: [FERRAMENTA], tool_choice: { type: "tool", name: "registrar_atendimento" },
+      system: `Você organiza o CRM do Anderson Costa, corretor de imóveis em Jaraguá do Sul. Ele fala ou cola um relato de atendimento (ou a transcrição de uma conversa gravada) e você estrutura os dados. Agora é ${agoraBR()} (fuso de Brasília, -03:00). Converta datas relativas ("sábado de manhã" vira o próximo sábado às 09:00; "amanhã" é o dia seguinte; "semana que vem" é segunda às 09:00). Só registre o que foi dito: nunca invente valor, prazo, nome ou decisão. Em transcrições, o corretor é o Anderson e o cliente é a outra pessoa. Tarefas são os próximos passos que o Anderson precisa fazer. Responda somente chamando a ferramenta registrar_atendimento.`,
+      tools: [FERRAMENTA], tool_choice: { type: "auto" },
       messages: [{ role: "user", content: texto.slice(0, 30000) }],
     }),
   });

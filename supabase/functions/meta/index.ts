@@ -278,7 +278,7 @@ async function gerarTextos(body: Record<string, any>) {
   };
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: await modelo(), max_tokens: 1800, system: REGRAS_COPY, tools: [ferramenta], tool_choice: { type: "tool", name: "textos_post" },
+    body: JSON.stringify({ model: await modelo(), max_tokens: 1800, system: REGRAS_COPY + "\n\nResponda somente chamando a ferramenta textos_post.", tools: [ferramenta], tool_choice: { type: "auto" },
       messages: [{ role: "user", content: `Peça: ${body.tipo ?? "carrossel"}. Objetivo: ${body.objetivo ?? "gerar conversas no direct e no WhatsApp com compradores qualificados"}.\nLink do imóvel: ${SITE}/imovel/${im.slug}/\nFatos:\n${JSON.stringify({ ...im, preco: im.preco_visivel ? im.preco : "sob consulta" })}\n${body.notas ? `Notas do Anderson: ${body.notas}` : ""}` }] }),
   });
   const j = await r.json();

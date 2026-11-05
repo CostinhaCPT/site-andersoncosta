@@ -5,7 +5,7 @@ import { imoveis, bairros } from '@/lib/imoveis';
 import { SITE } from '@/lib/site';
 export const metadata = { alternates: { canonical: '/' } };
 export default function Home() {
-  const dest = imoveis.filter((i) => i.destaque).concat(imoveis.filter((i) => !i.destaque)).slice(0, 6);
+  const dest = imoveis.filter((i) => i.destaque).concat(imoveis.filter((i) => !i.destaque).sort((a, b) => (b.preco || 0) - (a.preco || 0))).slice(0, 6);
   return (
     <>
       <section className="hero escuro">

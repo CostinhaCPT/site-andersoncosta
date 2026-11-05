@@ -5,18 +5,18 @@ import FormLead from '@/components/FormLead';
 import Card from '@/components/Card';
 import { BotaoWhats } from '@/components/Whats';
 import { imoveis, porSlug, semelhantes } from '@/lib/imoveis';
-import { brl, num } from '@/lib/format';
+import { brl, num, miniatura } from '@/lib/format';
 import { SITE } from '@/lib/site';
 import ContarVisita from '@/components/ContarVisita';
 export function generateStaticParams() { return imoveis.map((i) => ({ slug: i.slug })); }
 export async function generateMetadata({ params }) {
   const i = porSlug((await params).slug);
-  return { title: i.titulo, description: `${i.resumo} ${brl(i.preco)}. ${i.bairro}, ${i.cidade}.`, alternates: { canonical: `/imovel/${i.slug}/` }, openGraph: { images: [i.fotos[0].replace('.webp', '-p.webp')] } };
+  return { title: i.titulo, description: `${i.resumo} ${brl(i.preco)}. ${i.bairro}, ${i.cidade}.`, alternates: { canonical: `/imovel/${i.slug}/` }, openGraph: { images: [miniatura(i.fotos[0])] } };
 }
 export default async function Pagina({ params }) {
   const i = porSlug((await params).slug);
   const msg = `Olá, Anderson! Vi o imóvel "${i.titulo}" (ref. ${i.codigo}) no site e quero saber mais.`;
-  const ld = { '@context': 'https://schema.org', '@type': 'RealEstateListing', name: i.titulo, description: i.resumo, url: `${SITE.dominio}/imovel/${i.slug}/`, image: i.fotos.slice(0, 6).map((f) => SITE.dominio + f),
+  const ld = { '@context': 'https://schema.org', '@type': 'RealEstateListing', name: i.titulo, description: i.resumo, url: `${SITE.dominio}/imovel/${i.slug}/`, image: i.fotos.slice(0, 6).map((f) => (/^https?:/.test(f) ? f : SITE.dominio + f)),
     offers: { '@type': 'Offer', price: i.preco, priceCurrency: 'BRL', availability: 'https://schema.org/InStock' },
     mainEntity: { '@type': i.tipoSlug === 'apartamento' ? 'Apartment' : 'SingleFamilyResidence', numberOfBedrooms: i.quartos, numberOfBathroomsTotal: i.banheiros, floorSize: { '@type': 'QuantitativeValue', value: i.area, unitCode: 'MTK' }, address: { '@type': 'PostalAddress', addressLocality: i.cidade, addressRegion: 'SC', addressCountry: 'BR' } } };
   return (

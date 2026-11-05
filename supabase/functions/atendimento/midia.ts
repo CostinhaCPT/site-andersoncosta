@@ -125,19 +125,20 @@ export function paraFala(texto: string) {
     .replace(/(\d{1,3})\.(\d{3})\b/g, "$1$2")
     .replace(/\s?m²/g, " metros quadrados")
     .replace(/\bAC-0*(\d+)\b/g, "código $1")
+    .replace(/\bDM-0*(\d+)\b/g, "referência $1")
     .replace(/\s{2,}/g, " ")
     .trim()
     .slice(0, 1200);
 }
 
-export async function sintetizar(texto: string): Promise<Uint8Array> {
+export async function sintetizar(texto: string, formato: "mp3" | "opus" = "mp3"): Promise<Uint8Array> {
   const input = paraFala(texto);
   const tentativas = [
     {
-      model: "gpt-4o-mini-tts", voice: "coral", input, response_format: "mp3",
+      model: "gpt-4o-mini-tts", voice: "coral", input, response_format: formato,
       instructions: "Fale em português do Brasil, com sotaque neutro, tom cordial e calmo, como uma atendente atenciosa conversando por mensagem de voz. Ritmo natural, sem pressa.",
     },
-    { model: "tts-1", voice: "nova", input, response_format: "mp3" },
+    { model: "tts-1", voice: "nova", input, response_format: formato },
   ];
   for (const body of tentativas) {
     const r = await fetch("https://api.openai.com/v1/audio/speech", {

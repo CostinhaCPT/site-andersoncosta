@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
-      model: await modelo(), max_tokens: 1500, system: REGRAS, tools: [FERRAMENTA], tool_choice: { type: "tool", name: "textos_imovel" },
+      model: await modelo(), max_tokens: 1500, system: REGRAS + "\n\nResponda somente chamando a ferramenta textos_imovel.", tools: [FERRAMENTA], tool_choice: { type: "auto" },
       messages: [{ role: "user", content: `Ficha do imóvel:\n${fatos}\n\nNotas do Anderson (fatos, fala do proprietário, pontos de atenção):\n${notas || "nenhuma"}` }],
     }),
   });
@@ -254,7 +254,7 @@ async function montarLp(sb: any, body: Record<string, any>) {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
-      model: await modelo(), max_tokens: 3000, system: REGRAS_LP, tools: [FERRAMENTA_LP], tool_choice: { type: "tool", name: "montar_lp" },
+      model: await modelo(), max_tokens: 3000, system: REGRAS_LP + "\n\nResponda somente chamando a ferramenta montar_lp.", tools: [FERRAMENTA_LP], tool_choice: { type: "auto" },
       messages: [{ role: "user", content: pedido }],
     }),
   });
