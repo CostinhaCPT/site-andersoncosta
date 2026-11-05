@@ -152,8 +152,32 @@ async function sintetizarEleven(input: string, formato: "mp3" | "opus"): Promise
   return null;
 }
 
+const GOOGLE_TTS = Deno.env.get("GOOGLE_TTS_KEY") ?? "";
+const GOOGLE_VOZ = Deno.env.get("GOOGLE_TTS_VOICE") ?? "pt-BR-Chirp3-HD-Aoede";
+
+/** Google Cloud Text-to-Speech (Chirp 3 HD): voz natural, 1 milhão de caracteres grátis por mês, OGG/Opus nativo. */
+async function sintetizarGoogle(input: string, formato: "mp3" | "opus"): Promise<Uint8Array | null> {
+  if (!GOOGLE_TTS) return null;
+  const r = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(GOOGLE_TTS)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      input: { text: input },
+      voice: { languageCode: "pt-BR", name: GOOGLE_VOZ },
+      audioConfig: { audioEncoding: formato === "opus" ? "OGG_OPUS" : "MP3" },
+    }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (r.ok && j.audioContent) return Uint8Array.from(atob(j.audioContent), (c) => c.charCodeAt(0));
+  console.error("voz google", r.status, JSON.stringify(j).slice(0, 300));
+  return null;
+}
+
+/** Ordem: Google (melhor custo), ElevenLabs (se configurada), OpenAI (reserva). */
 export async function sintetizar(texto: string, formato: "mp3" | "opus" = "mp3"): Promise<Uint8Array> {
   const input = paraFala(texto);
+  const google = await sintetizarGoogle(input, formato);
+  if (google) return google;
   const eleven = await sintetizarEleven(input, formato);
   if (eleven) return eleven;
   const tentativas = [
