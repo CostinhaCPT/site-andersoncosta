@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { brl, miniatura } from '@/lib/format';
+import { brl } from '@/lib/format';
+import CardFotos from './CardFotos';
 export default function Card({ i }) {
   return (
     <Link href={`/imovel/${i.slug}/`} className="card">
-      <div className="foto" style={{ backgroundImage: `url(${miniatura(i.fotos[0])})` }} role="img" aria-label={i.titulo}><span className="selo">{i.reservado ? 'Reservado' : i.tipo}</span></div>
+      <CardFotos fotos={i.fotos} titulo={i.titulo} selo={i.reservado ? 'Reservado' : i.tipo} />
       <div className="corpo">
         <div className="loc">{i.bairro} · {i.cidade}</div>
         <h3>{i.titulo}</h3>

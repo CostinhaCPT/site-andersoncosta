@@ -17,8 +17,8 @@ export default async function Pagina({ params }) {
   const i = porSlug((await params).slug);
   const msg = `Olá, Anderson! Vi o imóvel "${i.titulo}" (ref. ${i.codigo}) no site e quero saber mais.`;
   const ld = { '@context': 'https://schema.org', '@type': 'RealEstateListing', name: i.titulo, description: i.resumo, url: `${SITE.dominio}/imovel/${i.slug}/`, image: i.fotos.slice(0, 6).map((f) => (/^https?:/.test(f) ? f : SITE.dominio + f)),
-    offers: { '@type': 'Offer', price: i.preco, priceCurrency: 'BRL', availability: 'https://schema.org/InStock' },
-    mainEntity: { '@type': i.tipoSlug === 'apartamento' ? 'Apartment' : 'SingleFamilyResidence', numberOfBedrooms: i.quartos, numberOfBathroomsTotal: i.banheiros, floorSize: { '@type': 'QuantitativeValue', value: i.area, unitCode: 'MTK' }, address: { '@type': 'PostalAddress', addressLocality: i.cidade, addressRegion: 'SC', addressCountry: 'BR' } } };
+    offers: { '@type': 'Offer', ...(i.precoVisivel && i.preco ? { price: i.preco, priceCurrency: 'BRL' } : {}), availability: i.reservado ? 'https://schema.org/LimitedAvailability' : 'https://schema.org/InStock', seller: { '@type': 'RealEstateAgent', name: SITE.marca, telephone: '+' + SITE.whatsapp, url: SITE.dominio } },
+    mainEntity: { '@type': i.tipoSlug === 'apartamento' ? 'Apartment' : 'SingleFamilyResidence', numberOfBedrooms: i.quartos, numberOfBathroomsTotal: i.banheiros, ...(i.area ? { floorSize: { '@type': 'QuantitativeValue', value: i.area, unitCode: 'MTK' } } : {}), address: { '@type': 'PostalAddress', addressLocality: i.cidade, addressRegion: 'SC', addressCountry: 'BR' } } };
   return (
     <div className="pagina-imovel" data-codigo={i.codigo}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
@@ -39,6 +39,7 @@ export default async function Pagina({ params }) {
               {i.banheiros > 0 && <div><b>{i.banheiros}</b><span>Banheiros</span></div>}
               {i.vagas > 0 && <div><b>{i.vagas}</b><span>Vaga{i.vagas > 1 ? 's' : ''}</span></div>}
               {i.condominio && <div><b>{brl(i.condominio)}</b><span>Condomínio</span></div>}
+              {i.iptu && <div><b>{brl(i.iptu)}</b><span>IPTU</span></div>}
             </div>
             <h2>Sobre o imóvel</h2>
             {i.descricao.split(/\n\s*\n/).map((p, k) => <p key={k}>{p}</p>)}
@@ -70,7 +71,7 @@ export default async function Pagina({ params }) {
           <div className="grade" style={{ marginTop: 24 }}>{semelhantes(i).map((s) => <Card key={s.codigo} i={s} />)}</div>
         </section>
       </div>
-      <div className="barra-mobile"><div style={{ flex: 1 }}><b>{brl(i.preco)}</b><div className="nota">{i.bairro}</div></div><BotaoWhats texto={msg} dados={{ imovel: i.codigo, local: 'barra_mobile' }}>WhatsApp</BotaoWhats></div>
+      <div className="barra-mobile"><div style={{ flex: 1 }}><b>{i.precoVisivel ? brl(i.preco) : 'Sob consulta'}</b><div className="nota">{i.bairro}</div></div><BotaoWhats texto={msg} dados={{ imovel: i.codigo, local: 'barra_mobile' }}>WhatsApp</BotaoWhats></div>
     </div>
   );
 }

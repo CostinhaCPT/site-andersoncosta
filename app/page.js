@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import Card from '@/components/Card';
 import FormLead from '@/components/FormLead';
-import { imoveis, bairros } from '@/lib/imoveis';
+import { imoveis, bairrosMapa } from '@/lib/imoveis';
+import MapaBairros from '@/components/MapaBairros';
 import { SITE } from '@/lib/site';
 export const metadata = { alternates: { canonical: '/' } };
 export default function Home() {
@@ -48,7 +49,8 @@ export default function Home() {
         <div className="wrap">
           <span className="eyebrow">Por bairro</span>
           <h2>Onde você quer morar?</h2>
-          <div className="tags" style={{ marginTop: 20 }}>{bairros().map((b) => <Link key={b.bairroSlug} href={`/imoveis/${b.cidadeSlug}/${b.bairroSlug}/`}>{b.bairro} ({b.total})</Link>)}</div>
+          <p className="muted" style={{ maxWidth: 640 }}>Cada ponto é um bairro com imóveis que acompanho. Não mostro o endereço exato de nenhum imóvel aqui: ele vai junto com a curadoria, para proteger quem está vendendo.</p>
+          <MapaBairros bairros={bairrosMapa()} />
         </div>
       </section>
 
@@ -57,7 +59,7 @@ export default function Home() {
           <div>
             <span className="eyebrow">Quem atende você</span>
             <h2>Anderson Costa</h2>
-            <p className="muted">Passei quase 20 anos em marketing e vendas antes de ser corretor. Sei como um anúncio é montado para parecer melhor do que é, e uso isso a seu favor: entendo o que a sua família precisa, comparo com números e digo o que cada imóvel tem de bom e de ruim.</p>
+            <p className="muted">Sou corretor de imóveis em Jaraguá do Sul, registrado no {SITE.creci}, e criei o Método Compra Segura. Passei quase 20 anos em marketing e vendas antes de ser corretor. Sei como um anúncio é montado para parecer melhor do que é, e uso isso a seu favor: entendo o que a sua família precisa, comparo com números e digo o que cada imóvel tem de bom e de ruim.</p>
             <p><i>“{SITE.frase}”</i></p>
             <Link href="/sobre/" className="btn btn-borda" style={{ color: '#fff' }}>Conheça minha história</Link>
           </div>
@@ -73,6 +75,16 @@ export default function Home() {
             <p className="muted">Eu te chamo no WhatsApp e, em até 48 horas, volto com os imóveis que fazem sentido, inclusive opções que não estão no site. Financiamento e permuta a gente conversa por lá.</p>
           </div>
           <FormLead titulo="" />
+        </div>
+      </section>
+
+      <section className="faixa-captacao">
+        <div className="wrap">
+          <div>
+            <span className="eyebrow">Para proprietários</span>
+            <p>Quer vender? Te mostro com dados do seu bairro quanto o seu imóvel vale hoje e como eu divulgaria.</p>
+          </div>
+          <Link href="/anuncie-seu-imovel/" className="btn btn-claro">Quanto vale meu imóvel</Link>
         </div>
       </section>
     </>
