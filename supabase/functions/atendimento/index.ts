@@ -746,7 +746,18 @@ async function sha256(texto: string) {
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
   return Array.from(new Uint8Array(b)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }
-const EVENTOS_META = ["Contact", "Lead", "LeadQualificado"];
+const EVENTOS_META = ["ViewContent", "Contact", "Lead", "LeadQualificado"];
+// Telefone no formato E.164 sem "+": só números, com 55 e DDD
+function foneE164(t: string) {
+  let f = String(t ?? "").replace(/\D/g, "").replace(/^0+/, "");
+  if (f.length === 10 || f.length === 11) f = "55" + f;
+  return /^55\d{10,11}$/.test(f) ? f : "";
+}
+function emailNorm(t: string) {
+  const e = String(t ?? "").trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : "";
+}
+const textoCapi = (v: unknown, n = 60) => String(v ?? "").replace(/[<>]/g, "").trim().slice(0, n);
 async function enviarCapi(body: Record<string, any>, req: Request) {
   if (!META_TOKEN) return { enviado: false, motivo: "sem token" };
   const evento = String(body.evento ?? "");
@@ -755,38 +766,52 @@ async function enviarCapi(body: Record<string, any>, req: Request) {
   if (!EVENTOS_META.includes(evento) || eid.length < 8 || !url.startsWith(SITE)) return { enviado: false, motivo: "inválido" };
 
   let nome = String(body.nome ?? "").trim().toLowerCase();
-  let fone = String(body.telefone ?? "").replace(/\D/g, "");
-  let email = "";
+  let fone = foneE164(body.telefone);
+  let email = emailNorm(body.email);
   let externo = "";
   const conv = String(body.conversa_id ?? "");
-  if (/^[0-9a-f-]{36}$/i.test(conv)) {
+  if (evento !== "ViewContent" && /^[0-9a-f-]{36}$/i.test(conv)) {
     const { data } = await sb.from("conversas").select("lead_id, leads(nome, whatsapp, email)").eq("id", conv).maybeSingle();
     const l = (data as any)?.leads;
     if (l) {
       nome = nome || String(l.nome ?? "").trim().toLowerCase();
-      fone = fone || String(l.whatsapp ?? "");
-      email = String(l.email ?? "").trim().toLowerCase();
+      fone = fone || foneE164(l.whatsapp);
+      email = email || emailNorm(l.email);
     }
     if ((data as any)?.lead_id) externo = String((data as any).lead_id);
   }
-  if (fone && fone.length <= 11) fone = "55" + fone;
   const partes = nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
 
+  // Dados pessoais só saem daqui com SHA-256; fbp/fbc, IP e user agent vão como a Meta pede (sem hash)
   const ud: Record<string, unknown> = {
     client_ip_address: (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || undefined,
     client_user_agent: req.headers.get("user-agent") ?? undefined,
-    fbp: String(body.fbp ?? "") || undefined,
-    fbc: String(body.fbc ?? "") || undefined,
+    fbp: /^fb\.\d\.\d+\.\d+$/.test(String(body.fbp ?? "")) ? String(body.fbp) : undefined,
+    fbc: /^fb\.\d\.\d+\..+$/.test(String(body.fbc ?? "")) ? String(body.fbc).slice(0, 500) : undefined,
     country: [await sha256("br")],
   };
-  if (fone.length >= 12) ud.ph = [await sha256(fone)];
+  if (fone) ud.ph = [await sha256(fone)];
   if (email) ud.em = [await sha256(email)];
   if (partes[0]) ud.fn = [await sha256(partes[0])];
   if (partes.length > 1) ud.ln = [await sha256(partes[partes.length - 1])];
   if (externo) ud.external_id = [await sha256(externo)];
 
   const custom: Record<string, unknown> = {};
-  if (body.imovel) { custom.content_ids = [String(body.imovel).slice(0, 20)]; custom.content_type = "home_listing"; }
+  const codigo = textoCapi(body.imovel, 20);
+  if (codigo) { custom.content_ids = [codigo]; custom.content_type = "home_listing"; }
+  if (evento === "ViewContent" && codigo) {
+    // Preço vem do banco (não do navegador) e só vai quando é público no site
+    const { data: im } = await sb.from("imoveis").select("preco, preco_visivel").eq("codigo", codigo).maybeSingle();
+    const preco = Number((im as any)?.preco ?? 0);
+    const visivel = (im as any)?.preco_visivel !== false;
+    if (preco > 0 && visivel) { custom.value = preco; custom.currency = "BRL"; }
+  }
+  if (evento === "Lead") {
+    const cat = textoCapi(body.categoria, 30);
+    if (cat) custom.content_category = cat;
+    if (body.orcamento) custom.orcamento = textoCapi(body.orcamento);
+    if (body.tipo) custom.tipo_imovel = textoCapi(body.tipo, 30);
+  }
 
   const payload: Record<string, unknown> = {
     data: [{
@@ -794,7 +819,9 @@ async function enviarCapi(body: Record<string, any>, req: Request) {
       action_source: "website", event_source_url: url.slice(0, 500), user_data: ud, custom_data: custom,
     }],
   };
-  if (META_TESTE) payload.test_event_code = META_TESTE;
+  const teste = String(body.teste ?? "");
+  if (/^TEST[0-9A-Z]{3,12}$/.test(teste)) payload.test_event_code = teste;
+  else if (META_TESTE) payload.test_event_code = META_TESTE;
   const r = await fetch(`https://graph.facebook.com/v23.0/${META_PIXEL}/events?access_token=${META_TOKEN}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
   });

@@ -11,7 +11,7 @@ import ContarVisita from '@/components/ContarVisita';
 export function generateStaticParams() { return imoveis.map((i) => ({ slug: i.slug })); }
 export async function generateMetadata({ params }) {
   const i = porSlug((await params).slug);
-  return { title: i.titulo, description: `${i.resumo} ${brl(i.preco)}. ${i.bairro}, ${i.cidade}.`, alternates: { canonical: `/imovel/${i.slug}/` }, openGraph: { images: [miniatura(i.fotos[0])] } };
+  return { title: i.titulo, description: `${i.resumo} ${i.precoVisivel && i.preco ? brl(i.preco) : 'Preço sob consulta'}. ${i.bairro}, ${i.cidade}.`, alternates: { canonical: `/imovel/${i.slug}/` }, openGraph: { images: [miniatura(i.fotos[0])] } };
 }
 export default async function Pagina({ params }) {
   const i = porSlug((await params).slug);
@@ -22,7 +22,7 @@ export default async function Pagina({ params }) {
   return (
     <div className="pagina-imovel" data-codigo={i.codigo}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
-      <ContarVisita codigo={i.codigo} titulo={i.titulo} />
+      <ContarVisita codigo={i.codigo} titulo={i.titulo} valor={i.precoVisivel && i.preco ? i.preco : null} />
       <div className="wrap">
         <div className="migalha"><Link href="/imoveis/">Imóveis</Link> / <Link href={`/imoveis/${i.cidadeSlug}/${i.bairroSlug}/`}>{i.bairro}</Link> / {i.tipo}</div>
         <Galeria fotos={i.fotos} titulo={i.titulo} />
@@ -49,7 +49,7 @@ export default async function Pagina({ params }) {
             </div>
             {i.video ? <div style={{ marginTop: 28, aspectRatio: '16/9' }}><iframe src={i.video} title={`Vídeo de ${i.titulo}`} style={{ width: '100%', height: '100%', border: 0, borderRadius: 10 }} allowFullScreen loading="lazy" /></div>
               : <div className="box" style={{ marginTop: 28 }}><h3>Vídeo honesto</h3><p className="muted" style={{ margin: 0 }}>Eu gravo o vídeo honesto deste imóvel quando ele entra na sua curadoria: o que ele tem de melhor e o que merece atenção, antes de você visitar. Peça pelo WhatsApp.</p></div>}
-            <Analise i={i} />
+            {i.precoVisivel && i.preco ? <Analise i={i} /> : null}
             <h2>Localização</h2>
             <p className="muted">{i.bairro}, {i.cidade}, SC. O endereço exato eu passo no agendamento da visita, por segurança do proprietário.</p>
             <iframe title={`Mapa do bairro ${i.bairro}`} loading="lazy" style={{ width: '100%', height: 300, border: 0, borderRadius: 10 }} src={`https://maps.google.com/maps?q=${encodeURIComponent(i.bairro + ', ' + i.cidade + ', SC')}&z=14&output=embed`} />
