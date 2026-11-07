@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fimoveis\u002F[cidade]\u002F[bairro]","\u002Fimovel\u002F[slug]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
