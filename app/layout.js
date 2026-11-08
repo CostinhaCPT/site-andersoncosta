@@ -14,7 +14,7 @@ export const metadata = {
   icons: { icon: '/marca/simbolo-preto.svg' },
   openGraph: { siteName: SITE.marca, locale: 'pt_BR', type: 'website' },
 };
-const consentDefault = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});`;
+const consentDefault = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('consent','default',{ad_storage:'denied',analytics_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',wait_for_update:500});try{if(localStorage.getItem('ac_consent')==='sim')gtag('consent','update',{ad_storage:'granted',analytics_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});}catch(e){}`;
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">

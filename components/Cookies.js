@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { capturarOrigem } from '@/lib/whats';
+import { capturarOrigem, evento } from '@/lib/whats';
 const K = 'ac_consent';
 function aplicar(v) {
   window.dataLayer = window.dataLayer || [];
@@ -18,7 +18,13 @@ export default function Cookies() {
     try { v = localStorage.getItem(K); } catch (e) {}
     if (v) aplicar(v); else setVer(true);
   }, []);
-  const escolher = (v) => { try { localStorage.setItem(K, v); } catch (e) {} aplicar(v); setVer(false); };
+  const escolher = (v) => {
+    try { localStorage.setItem(K, v); } catch (e) {}
+    aplicar(v); setVer(false);
+    // Quem aceita já dentro da página de um imóvel: registra a visualização agora que há consentimento
+    const im = window.__acImovel;
+    if (v === 'sim' && im?.codigo) evento('imovel_view', { imovel: im.codigo, content_type: 'home_listing', valor: im.valor || null, currency: 'BRL' });
+  };
   if (!ver) return null;
   return (
     <div className="cookie" role="dialog" aria-label="Preferências de cookies">
