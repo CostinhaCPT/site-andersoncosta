@@ -130,6 +130,65 @@ async function publicar(id: string) {
 }
 
 // ------------------------------------------------------------------ métricas
+// ------------------------------------------------------------------ painel de anúncios
+// Copia da Meta, dia a dia por anúncio, gasto e entrega, e a árvore campanha > conjunto > anúncio.
+// O admin cruza isso com os leads que chegaram por anúncio (view ads_leads) para mostrar o custo por lead real.
+async function paginas(caminho: string, params: Record<string, unknown>) {
+  const out: any[] = [];
+  let r = await graph(caminho, { params });
+  for (let k = 0; k < 20; k++) {
+    out.push(...(r.data ?? []));
+    const prox = r.paging?.next;
+    if (!prox) break;
+    const resp = await fetch(prox);
+    r = await resp.json();
+    if (!resp.ok) throw new ErroMeta(r?.error?.message ?? "falha ao paginar");
+  }
+  return out;
+}
+async function sincronizarAds(dias = 30) {
+  if (!CONTA_ADS) throw new ErroMeta("Falta o META_AD_ACCOUNT_ID nos segredos do Supabase.");
+  const conta = `act_${CONTA_ADS}`;
+  const fim = new Date();
+  const ini = new Date(fim.getTime() - (Math.min(Math.max(dias, 1), 90) - 1) * 864e5);
+  const dia = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const linhas = await paginas(`${conta}/insights`, {
+    level: "ad", time_increment: "1", limit: "500",
+    time_range: JSON.stringify({ since: dia(ini), until: dia(fim) }),
+    fields: "ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,spend,impressions,reach,clicks,inline_link_clicks,actions",
+  });
+  const diario = linhas.map((a: any) => ({
+    dia: a.date_start, anuncio_id: a.ad_id, anuncio_nome: a.ad_name,
+    conjunto_id: a.adset_id, conjunto_nome: a.adset_name, campanha_id: a.campaign_id, campanha_nome: a.campaign_name,
+    gasto: Number(a.spend ?? 0), impressoes: Number(a.impressions ?? 0), alcance: Number(a.reach ?? 0),
+    cliques: Number(a.clicks ?? 0), cliques_link: Number(a.inline_link_clicks ?? 0),
+    conversas: Number((a.actions ?? []).find((x: any) => /messaging_conversation_started_7d/.test(x.action_type))?.value
+      ?? (a.actions ?? []).find((x: any) => /messaging_conversation_started/.test(x.action_type))?.value ?? 0),
+    atualizado_em: new Date().toISOString(),
+  }));
+  for (let i = 0; i < diario.length; i += 200) {
+    const { error } = await sb.from("ads_diario").upsert(diario.slice(i, i + 200), { onConflict: "dia,anuncio_id" });
+    if (error) throw new ErroMeta("Banco: " + error.message);
+  }
+  const [camps, conjs, ads] = await Promise.all([
+    paginas(`${conta}/campaigns`, { fields: "id,name,status,effective_status,daily_budget", limit: "200" }),
+    paginas(`${conta}/adsets`, { fields: "id,name,campaign_id,status,effective_status,daily_budget", limit: "200" }),
+    paginas(`${conta}/ads`, { fields: "id,name,adset_id,status,effective_status,creative{thumbnail_url,image_url,title,body}", limit: "200" }),
+  ]);
+  const agora = new Date().toISOString();
+  const orc = (v: unknown) => (v == null ? null : Number(v) / 100);
+  const ents = [
+    ...camps.map((c: any) => ({ id: c.id, nivel: "campanha", nome: c.name, pai_id: null, status: c.status, status_efetivo: c.effective_status, orcamento_diario: orc(c.daily_budget), thumb: null, titulo: null, texto: null, atualizado_em: agora })),
+    ...conjs.map((c: any) => ({ id: c.id, nivel: "conjunto", nome: c.name, pai_id: c.campaign_id, status: c.status, status_efetivo: c.effective_status, orcamento_diario: orc(c.daily_budget), thumb: null, titulo: null, texto: null, atualizado_em: agora })),
+    ...ads.map((a: any) => ({ id: a.id, nivel: "anuncio", nome: a.name, pai_id: a.adset_id, status: a.status, status_efetivo: a.effective_status, orcamento_diario: null, thumb: a.creative?.thumbnail_url ?? a.creative?.image_url ?? null, titulo: a.creative?.title ?? null, texto: (a.creative?.body ?? "").slice(0, 600) || null, atualizado_em: agora })),
+  ];
+  for (let i = 0; i < ents.length; i += 200) {
+    const { error } = await sb.from("ads_entidades").upsert(ents.slice(i, i + 200), { onConflict: "id" });
+    if (error) throw new ErroMeta("Banco: " + error.message);
+  }
+  return { ok: true, dias: diario.length, entidades: ents.length };
+}
+
 async function metricas() {
   const { ig } = await ids();
   const perfil = await graph(ig, { params: { fields: "followers_count,follows_count,media_count,username" } });
@@ -366,7 +425,11 @@ Deno.serve(async (req) => {
       }
       return json({ publicados: res }, 200, origin);
     }
-    if (body.acao === "metricas") return json(await metricas(), 200, origin);
+    if (body.acao === "metricas") {
+      let ads: unknown = null;
+      try { ads = await sincronizarAds(7); } catch (e) { ads = { erro: (e as Error).message }; console.error("painel ads", e); }
+      return json({ ...(await metricas()), ads }, 200, origin);
+    }
     if (quem !== "admin") return json({ erro: "acesso negado" }, 403, origin);
     if (body.acao === "status") {
       if (!TOKEN) return json({ conectado: false, motivo: "Falta conectar a conta da Meta." }, 200, origin);
@@ -374,6 +437,7 @@ Deno.serve(async (req) => {
       catch (e) { return json({ conectado: false, motivo: (e as Error).message }, 200, origin); }
     }
     if (body.acao === "reconectar") { await sb.from("cofre").delete().eq("chave", "meta_ids"); cacheIds = null; return json(await ids().then((i) => ({ ok: true, instagram: i.ig_usuario })), 200, origin); }
+    if (body.acao === "sincronizar_ads") return json(await sincronizarAds(Number(body.dias) || 30), 200, origin);
     if (body.acao === "publicar") return json({ ok: true, criativo: await publicar(String(body.id)) }, 200, origin);
     if (body.acao === "textos") return json(await gerarTextos(body), 200, origin);
     if (body.acao === "anuncio") return json(await criarAnuncio(body), 200, origin);

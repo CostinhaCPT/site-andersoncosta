@@ -1086,7 +1086,17 @@ async function turno(
     + (ctxIn.voz && ctx.canal === "whatsapp" ? `\n\n## Resposta em áudio\n\nA pessoa mandou áudio, provavelmente está dirigindo ou sem poder ler. Sua resposta vai virar uma mensagem de voz, então escreva exatamente como uma pessoa fala num áudio de WhatsApp, não como texto lido. Regras: comece com uma reação curta e natural ("Oi! Olha, separei duas opções pra você." ou "Tenho sim, olha só."), e se for a sua primeira resposta na conversa diga logo no começo que é a assistente virtual do Anderson; use linguagem falada do dia a dia (pra, tá, olha, então), frases curtas, sem listas, sem "a primeira é... a segunda é..."; fale no máximo de dois imóveis, só o essencial de cada um (bairro, tipo, quartos e preço arredondado, como "uns novecentos e cinquenta mil"), sem metragem detalhada; um ponto de atenção só se for importante; uns 20 a 30 segundos de fala (no máximo 60 palavras); sem emoji e sem códigos de referência. Pode colocar os links no fim, eles vão por escrito e não serão lidos. Termine com uma pergunta simples que dê para responder por áudio.` : "")
     + (extras ? `\n\n## Orientações extras do Anderson\n\nSiga estas orientações dele, desde que não contrariem as regras acima (honestidade, não inventar, assistente virtual, sem travessão):\n${extras}` : "");
 
-  const messages: any[] = montarHistorico(hist ?? []);
+  // Mensagens em sequência: a resposta do turno anterior pode ser gravada depois da mensagem que disparou
+  // este turno. Sem isso o histórico termina na assistente e a API recusa. A mensagem que chegou por último
+  // vai para o fim, porque a resposta anterior não a tinha visto.
+  const ordem = [...(hist ?? [])];
+  if (ordem.length && ordem[ordem.length - 1].papel === "assistente") {
+    let i = ordem.length - 1;
+    while (i >= 0 && ordem[i].papel !== "usuario") i--;
+    if (i >= 0) ordem.push(...ordem.splice(i, 1));
+  }
+  const messages: any[] = montarHistorico(ordem);
+  if (!messages.length || messages[messages.length - 1].role !== "user") return { resposta: "", blocos: [] as string[], cartoes: [] as unknown[] };
   if (imagem && messages.length && messages[messages.length - 1].role === "user") {
     const ultimo = messages[messages.length - 1];
     ultimo.content = [

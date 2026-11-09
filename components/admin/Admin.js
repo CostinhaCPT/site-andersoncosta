@@ -11,6 +11,7 @@ import Contatos from './Contatos';
 import TarefasPainel from './TarefasPainel';
 import Estudio from './Estudio';
 import Relatorios from './Relatorios';
+import Anuncios from './Anuncios';
 
 export default function Admin() {
   const [sessao, setSessao] = useState(undefined);
@@ -67,6 +68,7 @@ export default function Admin() {
           <button className={aba === 'agenda' ? 'on' : ''} onClick={() => ir('agenda')}>Agenda{pendentes > 0 && <span className="adm-badge">{pendentes}</span>}</button>
           <button className={aba === 'lps' ? 'on' : ''} onClick={() => ir('lps')}>Páginas</button>
           <button className={aba === 'estudio' ? 'on' : ''} onClick={() => ir('estudio')}>Estúdio</button>
+          <button className={aba === 'anuncios' ? 'on' : ''} onClick={() => ir('anuncios')}>Anúncios</button>
           <button className={aba === 'relatorios' ? 'on' : ''} onClick={() => ir('relatorios')}>Relatórios</button>
           <button className={aba === 'whats' ? 'on' : ''} onClick={() => ir('whats')}>WhatsApp</button>
           <button className={aba === 'config' ? 'on' : ''} onClick={() => ir('config')}>Ajustes</button>
@@ -80,6 +82,7 @@ export default function Admin() {
       {aba === 'agenda' && <Agenda key={nonce} aoAbrirLead={(id) => { setAbrirLead(id); setAba('pipeline'); }} />}
       {aba === 'lps' && <Lps key={nonce} />}
       {aba === 'estudio' && <Estudio key={nonce} />}
+      {aba === 'anuncios' && <Anuncios key={nonce} />}
       {aba === 'relatorios' && <Relatorios key={nonce} />}
       {aba === 'whats' && <Whatsapp key={nonce} />}
       {aba === 'config' && <Configuracoes key={nonce} />}
