@@ -920,7 +920,9 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
       .order("criado_em", { ascending: false }).limit(1);
     clique = (cl?.[0]?.detalhe as Record<string, any>) ?? null;
   }
+  let leadNovo = false, conversaNova = false;
   if (!lead) {
+    leadNovo = true;
     const nome = String(contato?.profile?.name ?? "").replace(/\s+/g, " ").trim().slice(0, 80) || null;
     const { data, error } = await sb.from("leads").insert({
       nome, whatsapp: fone, etapa: "novo", canal: clique ? "Site" : "WhatsApp",
@@ -940,6 +942,7 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
     }).select("*").single();
     if (error) throw error;
     conversa = data;
+    conversaNova = true;
   }
 
   if (clique?.imovel && conversa!.contexto?.imovel !== clique.imovel) {
@@ -977,6 +980,16 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
   if (!texto) return;
 
   const { error: eIns } = await sb.from("mensagens").insert({ conversa_id: conversa!.id, papel: "usuario", conteudo: texto, meta });
+  // Aviso no app (iPhone/Mac) quando chega lead novo ou um antigo volta a conversar
+  if (leadNovo || conversaNova) {
+    const origemTxt = m.referral?.source_type === "ad" ? `Anúncio: ${String(m.referral.headline ?? m.referral.source_id ?? "").slice(0, 50)}`
+      : clique ? `Site${clique.imovel ? ` · ${clique.imovel}` : ""}` : "WhatsApp direto";
+    await sb.from("notificacoes").insert({
+      titulo: `${leadNovo ? "Novo lead" : "Lead voltou"}: ${lead!.nome ?? foneBR(fone)}`.slice(0, 80),
+      corpo: `${origemTxt}. "${texto.replace(/\s+/g, " ").slice(0, 90)}"`.slice(0, 160),
+      url: "/admin/?aba=whats", chave: `lead-${conversa!.id}`,
+    }).then(() => {}, () => {});
+  }
   if (eIns) { if ((eIns as any).code === "23505") return; throw eIns; }
   await sb.from("conversas").update({ atualizado_em: new Date().toISOString() }).eq("id", conversa!.id);
   await sb.from("leads").update({ ultima_atividade: new Date().toISOString() }).eq("id", lead!.id);
