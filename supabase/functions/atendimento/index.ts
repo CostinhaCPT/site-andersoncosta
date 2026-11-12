@@ -12,7 +12,7 @@ import {
   base64ParaBytes, bytesParaBase64, guardarAnexo, limparAnexos, MAX_AUDIO_BYTES, MAX_IMAGEM_BYTES, sintetizar, transcrever,
 } from "./midia.ts";
 import {
-  assinaturaValida, baixarMidia, enviarAudio, enviarHorarios, enviarTexto, foneCanonico, marcarLida, pediuParaParar, VERIFY_TOKEN,
+  assinaturaValida, baixarMidia, enviarAudio, enviarHorarios, enviarTexto, foneCanonico, gerirTemplates, marcarLida, pediuParaParar, VERIFY_TOKEN,
 } from "./whatsapp.ts";
 import { tick as followupTick } from "./followup.ts";
 
@@ -732,6 +732,23 @@ function juntarLinks(blocos: string[]) {
   return out;
 }
 
+// Which ad brought the person in: the ad name in Ads Manager carries the listing code (e.g. "AC-0010 | ...")
+async function contextoAnuncio(conversa: Record<string, any>): Promise<{ imovel: string | null; texto: string }> {
+  const r = conversa.contexto?.referral;
+  if (!r || r.source_type !== "ad") return { imovel: null, texto: "" };
+  const { data } = await sb.from("ads_entidades").select("nome, titulo").eq("id", String(r.source_id ?? "")).maybeSingle();
+  const nome = String(data?.nome ?? "");
+  const cod = nome.match(/\b(AC-\d{4}|DM-\d{2,4})\b/i)?.[1]?.toUpperCase() ?? null;
+  const titulo = String(r.headline ?? data?.titulo ?? "").replace(/["{}]/g, "").slice(0, 120);
+  const curadoria = !cod && /curadoria/i.test(nome + " " + titulo);
+  const texto = cod
+    ? `A pessoa chegou clicando no anúncio "${titulo}", que é do imóvel ${cod} (dados em "Imóvel visto"). Quando ela disser "isso", "esse", "mais informações" ou mandar print, é desse imóvel que está falando. Nunca pergunte qual imóvel ou anúncio foi: comece falando dele.`
+    : curadoria
+      ? `A pessoa chegou clicando no anúncio de curadoria ("${titulo}"). Ela não veio por um imóvel específico: apresente a curadoria em uma frase e comece a descoberta pelo que ela procura.`
+      : titulo ? `A pessoa chegou clicando no anúncio "${titulo}".` : "";
+  return { imovel: cod, texto };
+}
+
 async function contextoImovel(codigo?: string) {
   if (!codigo) return "nenhum";
   const { data } = await sb.from("imoveis").select("codigo, titulo, bairro, preco, preco_visivel, slug")
@@ -836,7 +853,8 @@ const PROMPT_WHATS = `
 
 ## Ajustes para o WhatsApp (valem acima da seção do chat do site)
 
-- Esta conversa acontece no WhatsApp de atendimento do Anderson. Não existe janela de saudação: se esta for sua primeira resposta na conversa, apresente-se em uma frase como assistente virtual do Anderson Costa e já ajude com o que a pessoa escreveu.
+- Esta conversa acontece no WhatsApp de atendimento do Anderson. Não existe janela de saudação: se esta for sua primeira resposta na conversa, apresente-se em poucas palavras como a Lu, do time do Anderson Costa ("Oi, Mariana! Aqui é a Lu, do time do Anderson."), e já ajude com o que a pessoa escreveu.
+- Origem desta conversa: {anuncio_contexto}
 - O WhatsApp da pessoa já é conhecido, é o número desta conversa. Nunca peça o número. Peça só o nome, se ainda não souber.
 - Mensagens que vêm do botão do site terminam com "Código: XXXX". É só um código interno de rastreio: nunca comente nem repita. Se a mensagem citar um imóvel (ref. DM-123 ou o título), comece falando dele.
 - Escreva no máximo 3 mensagens curtas por resposta. Nada de títulos com # nem tabelas. Use *negrito* só se ajudar muito.
@@ -1087,17 +1105,30 @@ async function turno(
   const pagina = ctx.canal === "whatsapp" ? "conversa pelo WhatsApp" : String(ctxIn.pagina ?? conversa.contexto?.pagina ?? "");
   const cfg = await config();
   const extras = String(cfg.chat.instrucoes_extras ?? "").trim().slice(0, 3000);
+  const anuncio = ctx.canal === "whatsapp" ? await contextoAnuncio(conversa) : { imovel: null, texto: "" };
+  if (anuncio.imovel && !conversa.contexto?.imovel) {
+    conversa.contexto = { ...(conversa.contexto ?? {}), imovel: anuncio.imovel };
+    await sb.from("conversas").update({ contexto: conversa.contexto }).eq("id", ctx.conversaId);
+    if (ctx.leadId) {
+      const { data: li } = await sb.from("leads").select("imovel_codigo, imoveis_interesse").eq("id", ctx.leadId).maybeSingle();
+      const lista = Array.isArray(li?.imoveis_interesse) ? li!.imoveis_interesse : [];
+      await sb.from("leads").update({
+        imovel_codigo: li?.imovel_codigo ?? anuncio.imovel,
+        imoveis_interesse: lista.includes(anuncio.imovel) ? lista : [...lista, anuncio.imovel],
+      }).eq("id", ctx.leadId);
+    }
+  }
   const system = PROMPT
     .replaceAll("{canal}", ctx.canal === "whatsapp" ? "WhatsApp" : "chat do site")
     .replaceAll("{pagina}", pagina || "não informada")
-    .replaceAll("{imovel_contexto}", await contextoImovel(ctxIn.imovel ?? conversa.contexto?.imovel))
+    .replaceAll("{imovel_contexto}", await contextoImovel(ctxIn.imovel ?? conversa.contexto?.imovel ?? anuncio.imovel ?? undefined))
     .replaceAll("{utm}", JSON.stringify(conversa.contexto?.utm ?? {}))
     .replaceAll("{agora}", agoraBR())
     .replaceAll("{lead}", leadTxt)
-    .replaceAll("{saudacao}", String(cfg.chat.saudacao || (ctxIn.saudacao ?? "Oi! Sou a assistente virtual do Anderson Costa. Me conta o que você está procurando que eu te ajudo a encontrar.")).replace(/["{}]/g, "").slice(0, 250))
-    + (ctx.canal === "whatsapp" ? PROMPT_WHATS : "")
-    + (ctxIn.voz && ctx.canal === "whatsapp" ? `\n\n## Resposta em áudio\n\nA pessoa mandou áudio, provavelmente está dirigindo ou sem poder ler. Sua resposta vai virar uma mensagem de voz, então escreva exatamente como uma pessoa fala num áudio de WhatsApp, não como texto lido. Regras: comece com uma reação curta e natural ("Oi! Olha, separei duas opções pra você." ou "Tenho sim, olha só."), e se for a sua primeira resposta na conversa diga logo no começo que é a assistente virtual do Anderson; use linguagem falada do dia a dia (pra, tá, olha, então), frases curtas, sem listas, sem "a primeira é... a segunda é..."; fale no máximo de dois imóveis, só o essencial de cada um (bairro, tipo, quartos e preço arredondado, como "uns novecentos e cinquenta mil"), sem metragem detalhada; um ponto de atenção só se for importante; uns 20 a 30 segundos de fala (no máximo 60 palavras); sem emoji e sem códigos de referência. Pode colocar os links no fim, eles vão por escrito e não serão lidos. Termine com uma pergunta simples que dê para responder por áudio.` : "")
-    + (extras ? `\n\n## Orientações extras do Anderson\n\nSiga estas orientações dele, desde que não contrariem as regras acima (honestidade, não inventar, assistente virtual, sem travessão):\n${extras}` : "");
+    .replaceAll("{saudacao}", String(cfg.chat.saudacao || (ctxIn.saudacao ?? "Oi! Aqui é a Lu, do time do Anderson Costa. Me conta o que você está procurando que eu te ajudo a encontrar.")).replace(/["{}]/g, "").slice(0, 250))
+    + (ctx.canal === "whatsapp" ? PROMPT_WHATS.replace("{anuncio_contexto}", anuncio.texto || "nenhum") : "")
+    + (ctxIn.voz && ctx.canal === "whatsapp" ? `\n\n## Resposta em áudio\n\nA pessoa mandou áudio, provavelmente está dirigindo ou sem poder ler. Sua resposta vai virar uma mensagem de voz, então escreva exatamente como uma pessoa fala num áudio de WhatsApp, não como texto lido. Regras: comece com uma reação curta e natural ("Oi! Olha, separei duas opções pra você." ou "Tenho sim, olha só."), e se for a sua primeira resposta na conversa diga logo no começo que é a Lu, do time do Anderson; use linguagem falada do dia a dia (pra, tá, olha, então), frases curtas, sem listas, sem "a primeira é... a segunda é..."; fale no máximo de dois imóveis, só o essencial de cada um (bairro, tipo, quartos e preço arredondado, como "uns novecentos e cinquenta mil"), sem metragem detalhada; um ponto de atenção só se for importante; uns 20 a 30 segundos de fala (no máximo 60 palavras); sem emoji e sem códigos de referência. Pode colocar os links no fim, eles vão por escrito e não serão lidos. Termine com uma pergunta simples que dê para responder por áudio.` : "")
+    + (extras ? `\n\n## Orientações extras do Anderson\n\nSiga estas orientações dele, desde que não contrariem as regras acima (honestidade, não inventar, nunca afirmar ser humana, sem travessão):\n${extras}` : "");
 
   // Mensagens em sequência: a resposta do turno anterior pode ser gravada depois da mensagem que disparou
   // este turno. Sem isso o histórico termina na assistente e a API recusa. A mensagem que chegou por último
@@ -1182,6 +1213,12 @@ Deno.serve(async (req) => {
       const { data: t } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
       if (!t?.valor?.token || t.valor.token !== body.token) return json({ erro: "negado" }, 403, origin);
       return json(await followupTick(sb, avisarAnderson), 200, origin);
+    }
+    if (body.acao === "wa_templates") {
+      // Submits or lists WhatsApp message templates. Same cron token as the follow-up tick.
+      const { data: t } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
+      if (!t?.valor?.token || t.valor.token !== body.token) return json({ erro: "negado" }, 403, origin);
+      return json(await gerirTemplates(String(body.waba ?? ""), Array.isArray(body.criar) ? body.criar : []), 200, origin);
     }
     if (body.acao === "indexar") return json({ indexados: await indexar() }, 200, origin);
     if (body.acao === "status") {

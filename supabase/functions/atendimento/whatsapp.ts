@@ -106,6 +106,28 @@ export function enviarTemplate(para: string, nome: string, idioma: string, varia
   });
 }
 
+/** Lists the WABA templates and submits new ones (name, category, language, body text with {{n}} and examples). */
+export async function gerirTemplates(waba: string, criar: Record<string, any>[]) {
+  if (!TOKEN || !/^\d{6,20}$/.test(waba)) return { erro: "sem token ou waba inválido" };
+  const criados: unknown[] = [];
+  for (const t of criar.slice(0, 10)) {
+    const nome = String(t.nome ?? "").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 60);
+    const texto = String(t.texto ?? "").slice(0, 1000);
+    if (!nome || !texto) { criados.push({ nome, erro: "nome ou texto vazio" }); continue; }
+    const exemplos = Array.isArray(t.exemplos) ? t.exemplos.map(String) : [];
+    const r = await fetch(`${GRAPH}/${waba}/message_templates`, {
+      method: "POST", headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: nome, language: String(t.idioma ?? "pt_BR"), category: String(t.categoria ?? "MARKETING"),
+        components: [{ type: "BODY", text: texto, ...(exemplos.length ? { example: { body_text: [exemplos] } } : {}) }],
+      }),
+    });
+    criados.push({ nome, status: r.status, resposta: await r.json().catch(() => ({})) });
+  }
+  const l = await fetch(`${GRAPH}/${waba}/message_templates?fields=name,status,category,language,rejected_reason&limit=50`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  return { criados, lista: (await l.json().catch(() => ({})))?.data ?? [] };
+}
+
 export async function marcarLida(wamid: string) {
   if (!waConfigurado()) return;
   await fetch(`${GRAPH}/${PHONE_ID}/messages`, {

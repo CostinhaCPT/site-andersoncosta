@@ -11,6 +11,8 @@ export type Auto = {
   max_toques: number; janela_dias: number; intervalo_h: number; primeiro_apos_h: number; teto_dia: number;
   janela_inicio: string; janela_fim: string; max_optout_dia: number; numeros_teste: string[];
   templates: Record<string, string>; idioma: string;
+  /** Body variables per template, in order: "nome" or "imovel". Default is ["nome"]. */
+  template_params?: Record<string, string[]>;
 };
 export const AUTO_PADRAO: Auto = {
   ativo: false, modo: "ensaio", max_toques: 4, janela_dias: 10, intervalo_h: 48, primeiro_apos_h: 18, teto_dia: 30,
@@ -55,12 +57,22 @@ const primeiroNome = (n?: string | null) => {
   return p ? p[0].toUpperCase() + p.slice(1).toLowerCase() : "tudo bem";
 };
 
-export function textoPasso(passo: number, lead: Record<string, any>) {
+/** How a follow-up refers to the listing the person came for, or to the search when there is none. */
+export async function imovelDoLead(sb: SupabaseClient, lead: Record<string, any>, passo = 1) {
+  const cod = lead.imovel_codigo ?? (Array.isArray(lead.imoveis_interesse) ? lead.imoveis_interesse[0] : null);
+  if (cod) {
+    const { data } = await sb.from("imoveis").select("titulo, status").eq("codigo", cod).maybeSingle();
+    if (data?.titulo && data.status === "disponivel") return `o imóvel "${String(data.titulo).slice(0, 80)}"`;
+  }
+  return passo === 3 ? "os imóveis que combinam com a sua busca" : "a sua busca de imóvel";
+}
+
+export function textoPasso(passo: number, lead: Record<string, any>, imovel = "a sua busca de imóvel") {
   const nome = primeiroNome(lead.nome);
   const oi = nome === "tudo bem" ? "Oi, tudo bem?" : `Oi, ${nome}!`;
-  if (passo === 1) return `${oi} Aqui é a assistente virtual do Anderson Costa. Ficou alguma dúvida sobre a sua busca de imóvel? Se quiser, separo uns horários para você conhecer pessoalmente.`;
-  if (passo === 2) return `${oi} Separei algumas opções que combinam com o que você me contou. Quer que eu te mande por aqui?`;
-  if (passo === 3) return `${oi} Se fizer sentido ver algum imóvel de perto, o Anderson tem horários nesta semana. Prefere manhã, tarde ou sábado?`;
+  if (passo === 1) return `${oi} Aqui é a Lu, do time do Anderson Costa. Sobre ${imovel}, ficou alguma dúvida? Se quiser, te mando o vídeo e o custo total da compra para você avaliar com calma.`;
+  if (passo === 2) return `${oi} É a Lu, do time do Anderson. Separei algumas opções que combinam com o que você me contou. Quer que eu te mande por aqui?`;
+  if (passo === 3) return `${oi} O Anderson tem horários livres nesta semana para você conhecer ${imovel === "a sua busca de imóvel" ? "os imóveis que combinam com a sua busca" : imovel} de perto. Prefere manhã, tarde ou sábado?`;
   return `${nome === "tudo bem" ? "Oi." : `Oi, ${nome}.`} Não quero ser insistente, então vou pausar por aqui. Se a busca voltar a fazer sentido, é só responder esta mensagem. Anderson Costa, CRECI SC 68594.`;
 }
 
@@ -181,7 +193,7 @@ async function planejar(sb: SupabaseClient, cfg: Auto) {
     const { error } = await sb.from("followup_fila").insert({
       lead_id: lead.id, cadencia: "sem_resposta", episodio: new Date(episodio).toISOString(), passo: proximo, faixa,
       agendado_para: new Date(depois).toISOString(), forma: janela24 ? "texto" : "template",
-      template: janela24 ? null : (cfg.templates[String(proximo)] ?? null), texto: textoPasso(proximo, lead),
+      template: janela24 ? null : (cfg.templates[String(proximo)] ?? null), texto: textoPasso(proximo, lead, await imovelDoLead(sb, lead, proximo)),
     });
     if (!error) { n++; await log(sb, lead.id, "planejado", { passo: proximo, faixa, quando: new Date(depois).toISOString() }); }
   }
@@ -253,7 +265,8 @@ async function executar(sb: SupabaseClient, cfg: Auto, avisar: (assunto: string,
     if (!pego?.length) continue;
     const r = forma === "texto"
       ? await enviarTexto(lead!.whatsapp, item.texto)
-      : await enviarTemplate(lead!.whatsapp, tpl, cfg.idioma || "pt_BR", [primeiroNome(lead!.nome)]);
+      : await enviarTemplate(lead!.whatsapp, tpl, cfg.idioma || "pt_BR",
+        await Promise.all((cfg.template_params?.[tpl] ?? ["nome"]).map(async (f) => f === "imovel" ? await imovelDoLead(sb, lead!, item.passo) : primeiroNome(lead!.nome))));
     if (!r.ok) {
       await sb.from("followup_fila").update({ status: "falhou", motivo: r.erro?.slice(0, 200) }).eq("id", item.id);
       await log(sb, item.lead_id, "falhou", { id: item.id, erro: r.erro, codigo: r.codigo });
