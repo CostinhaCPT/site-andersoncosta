@@ -432,6 +432,8 @@ type Ctx = {
   leadId: string | null;
   handoff: { whatsapp_url: string } | null;
   agenda: { imovel: string | null; titulo: string | null; exige_validacao: boolean; opcoes: Opcao[]; modo: string; situacao?: string } | null;
+  /** Test run: no alert to Anderson, nothing sent to anyone. */
+  simulacao?: boolean;
 };
 
 async function buscarImoveis(i: Record<string, unknown>) {
@@ -522,7 +524,7 @@ async function passarParaAnderson(i: Record<string, unknown>, ctx: Ctx) {
   }
 
   // Só um e-mail por conversa
-  if (!conv?.passada_em) await enviarAlerta(i, lead, ref, conv?.contexto ?? {}, ctx.conversaId, ctx.canal);
+  if (!conv?.passada_em && !ctx.simulacao) await enviarAlerta(i, lead, ref, conv?.contexto ?? {}, ctx.conversaId, ctx.canal);
   return ctx.canal === "whatsapp"
     ? { ok: true, observacao: "O Anderson assume esta conversa aqui mesmo no WhatsApp. Não fale em botão." }
     : { ok: true, botao_whatsapp_exibido: true };
@@ -747,6 +749,44 @@ async function contextoAnuncio(conversa: Record<string, any>): Promise<{ imovel:
       ? `A pessoa chegou clicando no anúncio de curadoria ("${titulo}"). Ela não veio por um imóvel específico: apresente a curadoria em uma frase e comece a descoberta pelo que ela procura.`
       : titulo ? `A pessoa chegou clicando no anúncio "${titulo}".` : "";
   return { imovel: cod, texto };
+}
+
+async function simularConversa(body: Record<string, any>) {
+  const falas = (Array.isArray(body.mensagens) ? body.mensagens : []).map((x: unknown) => String(x).slice(0, 500)).slice(0, 12);
+  const referral = body.anuncio_id
+    ? { source_type: "ad", source_id: String(body.anuncio_id), headline: String(body.headline ?? "") }
+    : null;
+  const { data: lead, error: e1 } = await sb.from("leads").insert({
+    nome: String(body.nome ?? "Teste").slice(0, 40), canal: "WhatsApp", etapa: "novo", nao_contatar: true, nao_contatar_motivo: "simulação",
+    origem: { canal: "simulacao", ...(referral ? { anuncio: referral.source_id, anuncio_titulo: referral.headline } : {}) },
+  }).select("id").single();
+  if (e1) throw e1;
+  const { data: conv, error: e2 } = await sb.from("conversas").insert({
+    canal: "whatsapp", lead_id: lead.id, contexto: { simulacao: true, ...(referral ? { referral } : {}) },
+  }).select("*").single();
+  if (e2) { await sb.from("leads").delete().eq("id", lead.id); throw e2; }
+  const transcricao: { pessoa: string; lu: string; ferramentas?: unknown }[] = [];
+  let final: unknown = null;
+  try {
+    for (const f of falas) {
+      await sb.from("mensagens").insert({ conversa_id: conv.id, papel: "usuario", conteudo: f, meta: { simulacao: true } });
+      const { data: atual } = await sb.from("conversas").select("*").eq("id", conv.id).single();
+      const ctx: Ctx = { canal: "whatsapp", conversaId: conv.id, leadId: lead.id, handoff: null, agenda: null, simulacao: true };
+      const r = await turno(ctx, atual ?? conv, {}, null);
+      transcricao.push({ pessoa: f, lu: r.resposta, ...(ctx.agenda ? { ferramentas: { visita: ctx.agenda.opcoes.length } } : {}) });
+      if (atual?.status === "anderson") break;
+    }
+    const { data: l } = await sb.from("leads").select("*").eq("id", lead.id).single();
+    const { data: c } = await sb.from("conversas").select("status, resumo, contexto").eq("id", conv.id).single();
+    final = { lead: Object.fromEntries(Object.entries(l ?? {}).filter(([k, v]) => v != null && !["tsv", "termometro_detalhe"].includes(k))), conversa: c };
+  } finally {
+    await sb.from("mensagens").delete().eq("conversa_id", conv.id);
+    await sb.from("conversas").delete().eq("id", conv.id);
+    await sb.from("automacao_log").delete().eq("lead_id", lead.id);
+    await sb.from("notificacoes").delete().like("chave", `%${conv.id}%`);
+    await sb.from("leads").delete().eq("id", lead.id);
+  }
+  return { transcricao, final };
 }
 
 async function contextoImovel(codigo?: string) {
@@ -1213,6 +1253,12 @@ Deno.serve(async (req) => {
       const { data: t } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
       if (!t?.valor?.token || t.valor.token !== body.token) return json({ erro: "negado" }, 403, origin);
       return json(await followupTick(sb, avisarAnderson), 200, origin);
+    }
+    if (body.acao === "simular") {
+      // Runs a scripted WhatsApp conversation through the real assistant, sends nothing, and deletes every trace.
+      const { data: t } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
+      if (!t?.valor?.token || t.valor.token !== body.token) return json({ erro: "negado" }, 403, origin);
+      return json(await simularConversa(body), 200, origin);
     }
     if (body.acao === "wa_templates") {
       // Submits or lists WhatsApp message templates. Same cron token as the follow-up tick.

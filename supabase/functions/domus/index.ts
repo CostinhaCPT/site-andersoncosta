@@ -260,7 +260,8 @@ async function selar(codigo?: string, maxFotos = 30) {
   const alvo = (data ?? []).find((x: any) => (codigo ? (x.campos?.fotos_domus ?? []).length > 0 || (x.fotos ?? []).some(ehDomus) : precisaSelo(x)));
   if (!alvo) return { pendentes: 0 };
   const atuais = (alvo.fotos ?? []) as string[];
-  const resselar = !atuais.some(ehDomus) && (alvo.campos?.fotos_domus ?? []).length > 0;
+  // Reselo só vale para imóvel que já tem fotos seladas; imóvel novo (sem fotos) usa as fotos da Domus
+  const resselar = atuais.length > 0 && !atuais.some(ehDomus) && (alvo.campos?.fotos_domus ?? []).length > 0;
   const ref = alvo.campos?.ref_domus ?? alvo.codigo.replace(PREFIXO, "");
   const fd = (alvo.campos?.fotos_domus ?? []) as string[];
   // No reselo mantém a lista e a ordem que o Anderson deixou: cada sNN.jpg volta para a foto original NN da Domus
