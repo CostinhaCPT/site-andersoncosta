@@ -9,7 +9,7 @@ const DESTINO = new globalThis.URL('../data/imoveis.json', import.meta.url);
 
 import { mapearImovel } from '../lib/mapear.mjs';
 
-const campos = 'codigo,slug,status,titulo,resumo,descricao,destaques,atencao,tipo,cidade,bairro,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,condominio,iptu,aceita_permuta,aceita_financiamento,fotos,video,ref_m2,ref_amostra,destaque,ordem';
+const campos = 'codigo,slug,status,titulo,resumo,descricao,destaques,atencao,tipo,cidade,bairro,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,condominio,iptu,aceita_permuta,aceita_financiamento,fotos,video,ref_m2,ref_amostra,destaque,ordem,criado_em';
 const r = await fetch(`${URL}/rest/v1/imoveis?select=${campos}&order=preco.asc`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
 if (!r.ok) {
   console.error('Supabase respondeu', r.status, await r.text());

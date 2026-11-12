@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { brl } from '@/lib/format';
 import CardFotos from './CardFotos';
-export default function Card({ i }) {
+export default function Card({ i, prioridade = false }) {
   return (
     <Link href={`/imovel/${i.slug}/`} className="card">
-      <CardFotos fotos={i.fotos} titulo={i.titulo} selo={i.reservado ? 'Reservado' : i.tipo} />
+      <CardFotos fotos={i.fotos} titulo={i.titulo} selo={i.reservado ? 'Reservado' : i.tipo} prioridade={prioridade} />
       <div className="corpo">
         <div className="loc">{i.bairro} · {i.cidade}</div>
         <h3>{i.titulo}</h3>

@@ -1,11 +1,13 @@
 import Link from 'next/link';
-import Card from '@/components/Card';
+import Destaques from '@/components/Destaques';
 import FormLead from '@/components/FormLead';
-import { imoveis, bairrosMapa } from '@/lib/imoveis';
+import { imoveis, bairrosMapa, paraCard } from '@/lib/imoveis';
 import MapaBairros from '@/components/MapaBairros';
 import { SITE } from '@/lib/site';
 export const metadata = { alternates: { canonical: '/' } };
 export default function Home() {
+  // Vitrine viva: o navegador escolhe os 6 a cada visita; vai só o que o card precisa (4 fotos por imóvel)
+  const vitrine = imoveis.map((i) => paraCard(i, 4));
   const dest = imoveis.filter((i) => i.destaque).concat(imoveis.filter((i) => !i.destaque).sort((a, b) => (b.preco || 0) - (a.preco || 0))).slice(0, 6);
   return (
     <>
@@ -40,7 +42,7 @@ export default function Home() {
         <div className="wrap">
           <span className="eyebrow">Selecionados</span>
           <h2>Imóveis em destaque</h2>
-          <div className="grade" style={{ marginTop: 28 }}>{dest.map((i) => <Card key={i.codigo} i={i} />)}</div>
+          <Destaques lista={vitrine} inicial={dest.map((i) => i.codigo)} />
           <p style={{ marginTop: 32, textAlign: 'center' }}><Link href="/imoveis/" className="btn btn-escuro">Ver todos os {imoveis.length} imóveis</Link></p>
         </div>
       </section>

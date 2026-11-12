@@ -424,3 +424,11 @@ p { margin: 0 0 1em; }
 .pino-cidade em { display: block; }
 .pino-bairro span { font-size: 12px; }
 .mapa-caixa .leaflet-tile-pane { filter: grayscale(1) contrast(.92) brightness(1.04); }
+
+/* Vitrine da home */
+.vitrine-abas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; align-items: center; }
+.vitrine-abas button { font: inherit; font-size: .9rem; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--linha); background: #fff; color: var(--texto); cursor: pointer; }
+.vitrine-abas button.on { background: var(--preto); color: #fff; border-color: var(--preto); }
+.vitrine-abas .vitrine-outros { border: 0; background: none; text-decoration: underline; color: var(--cinza); margin-left: auto; }
+.vitrine-nota { font-size: .85rem; margin: 10px 0 0; }
+@media (max-width: 620px) { .vitrine-abas { flex-wrap: nowrap; overflow-x: auto; margin-right: -20px; padding-bottom: 4px; } .vitrine-abas button { flex: none; } .vitrine-abas .vitrine-outros { margin-left: 0; } }

@@ -1,8 +1,19 @@
 'use client';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import Card from './Card';
 export default function Catalogo({ lista, inicial = {} }) {
   const [f, setF] = useState({ bairro: '', tipo: '', faixa: '', quartos: '', ordem: 'maior', ...inicial });
+  // Mostra de 24 em 24: com os 349 de uma vez o celular (Safari, Chrome e Brave) travava ou recarregava a página
+  const PASSO = 24;
+  const [qtd, setQtd] = useState(PASSO);
+  const fim = useRef(null);
+  useEffect(() => { setQtd(PASSO); }, [f]);
+  // Carrega o próximo bloco sozinho quando o botão chega perto da tela
+  useEffect(() => {
+    const el = fim.current; if (!el || !('IntersectionObserver' in window)) return;
+    const o = new IntersectionObserver((e) => { if (e[0].isIntersecting) setQtd((q) => q + PASSO); }, { rootMargin: '600px 0px' });
+    o.observe(el); return () => o.disconnect();
+  }, [qtd, f]);
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const n = {}; ['bairro', 'tipo', 'faixa', 'quartos'].forEach((k) => p.get(k) && (n[k] = p.get(k)));
@@ -31,7 +42,10 @@ export default function Catalogo({ lista, inicial = {} }) {
         <select value={f.ordem} onChange={set('ordem')} aria-label="Ordenar"><option value="maior">Maior preço</option><option value="menor">Menor preço</option></select>
         <span className="muted" style={{ alignSelf: 'center', fontSize: '.9rem' }}>{res.length} imóve{res.length === 1 ? 'l' : 'is'}</span>
       </div>
-      {res.length ? <div className="grade">{res.map((i) => <Card key={i.codigo} i={i} />)}</div> : <p className="muted">Nenhum imóvel com esses filtros. Peça uma curadoria e eu procuro para você, inclusive fora do site.</p>}
+      {res.length ? <>
+        <div className="grade">{res.slice(0, qtd).map((i, k) => <Card key={i.codigo} i={i} prioridade={k < 2} />)}</div>
+        {qtd < res.length && <p ref={fim} style={{ marginTop: 32, textAlign: 'center' }}><button type="button" className="btn btn-escuro" onClick={() => setQtd((q) => q + PASSO)}>Ver mais imóveis ({res.length - qtd})</button></p>}
+      </> : <p className="muted">Nenhum imóvel com esses filtros. Peça uma curadoria e eu procuro para você, inclusive fora do site.</p>}
     </>
   );
 }

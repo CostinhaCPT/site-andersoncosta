@@ -263,8 +263,16 @@ export function Postar({ criativo: c, aoFechar }) {
 }
 
 // ------------------------------------------------------------------ calendário
+/** Todas as telas da peça lado a lado, para conferir antes de publicar ou anunciar. */
+function Pecas({ arquivos, so_capa }) {
+  const lista = (arquivos || []).slice(0, so_capa ? 1 : 10);
+  if (!lista.length) return <p className="adm-sub">Esta peça ainda não tem arte.</p>;
+  return <div className="adm-postar-fotos">{lista.map((a, i) => (a.tipo === 'video' ? <video key={i} src={a.url} controls playsInline /> : <a key={i} href={a.url} target="_blank" rel="noopener"><img src={a.url} alt={`Tela ${i + 1}`} /></a>))}</div>;
+}
+
 function Calendario({ conexao, aoPostar }) {
   const [lista, setLista] = useState(null);
+  const [aberta, setAberta] = useState(null);
   const [msg, setMsg] = useState('');
   const [anuncioDe, setAnuncioDe] = useState(null);
   const carregar = () => sb().from('criativos').select('*').neq('status', 'arquivado').order('agendado_para', { ascending: false, nullsFirst: true }).order('criado_em', { ascending: false }).limit(100).then(({ data }) => setLista(data || []));
@@ -286,13 +294,15 @@ function Calendario({ conexao, aoPostar }) {
       {!lista.length ? <p className="adm-sub">Nenhuma peça ainda. Comece em "Criar peça".</p> : (
         <ul className="adm-lista adm-pecas">{lista.map((c) => (
           <li key={c.id} className="adm-fila">
-            {c.arquivos?.[0] && (c.arquivos[0].tipo === 'video' ? <div className="adm-peca-mini">▶</div> : <img className="adm-peca-mini" src={c.arquivos[0].url} alt="" />)}
+            {c.arquivos?.[0] && (c.arquivos[0].tipo === 'video' ? <div className="adm-peca-mini">▶</div> : <img className="adm-peca-mini" src={c.arquivos[0].url} alt="" style={{ cursor: 'pointer' }} onClick={() => setAberta(aberta === c.id ? null : c.id)} />)}
             <div>
               <b>{c.imovel_codigo} · {TIPOS[c.tipo]?.[0]}</b> <span className={`adm-tag ${c.status === 'erro' ? 't-bloq' : c.status === 'publicado' ? 't-voce' : c.status === 'aguardando' ? 't-alerta' : ''}`}>{STATUS[c.status]}</span>{c.modo === 'assistido' && <span className="adm-tag">com música</span>}
               <small>{c.status === 'publicado' ? `Publicado ${dataHora(c.publicado_em)}` : c.agendado_para ? `Agendado para ${dataHora(c.agendado_para)}` : 'Sem data'} · {c.modo === 'assistido' ? 'você posta pelo app' : (c.redes || []).join(' e ')}{c.palavra_chave ? ` · palavra ${c.palavra_chave}` : ''}</small>
               {c.metricas && Object.keys(c.metricas).length > 0 && <small>Alcance {c.metricas.reach ?? 0} · visualizações {c.metricas.views ?? 0} · curtidas {c.metricas.likes ?? 0} · envios {c.metricas.shares ?? 0} · salvos {c.metricas.saved ?? 0}</small>}
               {c.erro && <small className="adm-erro">{c.erro}</small>}
+              {aberta === c.id && (<><Pecas arquivos={c.arquivos} />{c.legenda && <p className="adm-legenda-previa">{c.legenda}</p>}</>)}
               <div className="adm-wa-acoes">
+                <button className="adm-link" onClick={() => setAberta(aberta === c.id ? null : c.id)}>{aberta === c.id ? 'Fechar peça' : `Ver peça${(c.arquivos || []).length > 1 ? ` (${c.arquivos.length} telas)` : ''}`}</button>
                 {(c.modo === 'assistido' ? ['rascunho', 'agendado', 'aguardando', 'erro'] : []).includes(c.status) && <button className="adm-link" onClick={() => aoPostar(c)}>Postar agora</button>}
                 {c.modo !== 'assistido' && ['rascunho', 'agendado', 'erro'].includes(c.status) && conexao?.conectado && <button className="adm-link" onClick={() => acao(c, 'publicar')}>Publicar agora</button>}
                 {c.status === 'agendado' && <button className="adm-link" onClick={() => acao(c, 'pausar')}>Tirar da agenda</button>}
@@ -323,6 +333,8 @@ function NovoAnuncio({ criativo, aoFechar }) {
       <button className="adm-link" onClick={aoFechar}>← Voltar</button>
       <h2>Anúncio de {criativo.imovel_codigo}: conversas no WhatsApp</h2>
       <p className="adm-sub">O anúncio é criado <b>pausado</b>. Nada é gasto até você ativar.</p>
+      <Pecas arquivos={criativo.arquivos} so_capa />
+      {(criativo.arquivos || []).length > 1 && <p className="adm-sub">O anúncio usa só a capa acima, com o texto abaixo. As outras {criativo.arquivos.length - 1} telas do carrossel ficam no post do feed.</p>}
       <div className="adm-grade2">
         <label className="adm-campo"><span>Orçamento por dia (R$)</span><input type="number" min="6" value={f.orcamento_dia} onChange={set('orcamento_dia')} /></label>
         <label className="adm-campo"><span>Quantos dias</span><input type="number" min="1" max="60" value={f.dias} onChange={set('dias')} /></label>

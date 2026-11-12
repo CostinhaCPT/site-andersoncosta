@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import { miniatura } from '@/lib/format';
 // Fotos do card: arrasta para o lado no celular (scroll-snap nativo), setas no computador.
-export default function CardFotos({ fotos, titulo, selo, max = 8 }) {
+export default function CardFotos({ fotos, titulo, selo, max = 8, prioridade = false }) {
   const lista = (fotos || []).slice(0, max);
   const ref = useRef(null);
   const [n, setN] = useState(0);
@@ -17,7 +17,7 @@ export default function CardFotos({ fotos, titulo, selo, max = 8 }) {
     <div className="foto">
       <div className="fotos-trilho" ref={ref} onScroll={rolou}>
         {lista.map((f, k) => (
-          <img key={f} src={miniatura(f)} alt={k === 0 ? titulo : `${titulo}, foto ${k + 1}`} loading={k === 0 ? 'eager' : 'lazy'} decoding="async" draggable="false" />
+          <img key={f} src={miniatura(f)} alt={k === 0 ? titulo : `${titulo}, foto ${k + 1}`} loading={k === 0 && prioridade ? 'eager' : 'lazy'} decoding="async" draggable="false" />
         ))}
       </div>
       {selo && <span className="selo">{selo}</span>}
