@@ -23,21 +23,19 @@ export default function Analise({ i }) {
   const renda = p1 / COMPROMETIMENTO;
   const temRef = !!(i.precoM2 && i.refM2);
   const dif = temRef ? ((i.precoM2 - i.refM2) / i.refM2) * 100 : 0;
-  const pos = Math.max(4, Math.min(96, 50 + dif));
   const avisoEnt = (+entTxt || 0) < entMin;
   const avisoPrazo = (+anosTxt || 0) > prazoTeto;
   return (
     <section className="analise" id="analise">
       <span className="eyebrow">Método Compra Segura</span>
       <h2>Análise de compra</h2>
-      <p className="muted">Uma leitura rápida para comparar com calma. A análise completa, com documentação, eu entrego na curadoria.</p>
+      <p className="muted">Uma leitura rápida para comparar com calma. A análise completa, com documentação, eu entrego na conversa.</p>
       {temRef && <>
-      <h3 style={{ marginTop: 24 }}>Preço por m²</h3>
-      <div className="linhas">
-        <div className="linha"><span>Este imóvel</span><b>{brl(i.precoM2)}/m²</b></div>
-        <div className="linha"><span>Referência para {i.tipoSlug === 'apartamento' ? 'apartamentos' : 'casas e geminados'} {i.refAmostra ? `no ${i.bairro}` : 'em Jaraguá do Sul'}</span><b>{brl(i.refM2)}/m²</b></div>
+      <h3 style={{ marginTop: 24 }}>O m² deste imóvel contra a referência</h3>
+      <div className="barras-m2 num">
+        <div><span>Este imóvel</span><i style={{ width: (100 * i.precoM2 / Math.max(i.precoM2, i.refM2)) + '%' }} /><b>{brl(i.precoM2)}</b></div>
+        <div className="ref"><span>{i.refAmostra ? `Mediana de ${i.refAmostra} ${i.tipoSlug === 'apartamento' ? 'apartamentos' : 'casas e geminados'} no bairro` : `Mediana de ${i.tipoSlug === 'apartamento' ? 'apartamentos' : 'casas e geminados'} em Jaraguá do Sul`}</span><i style={{ width: (100 * i.refM2 / Math.max(i.precoM2, i.refM2)) + '%' }} /><b>{brl(i.refM2)}</b></div>
       </div>
-      <div className="barra"><i style={{ left: '50%', background: '#999' }} /><i style={{ left: pos + '%' }} /></div>
       <p className="nota">{Math.abs(dif) < 5 ? 'Em linha com a referência.' : dif < 0 ? `${Math.abs(dif).toFixed(0)}% abaixo da referência.` : `${dif.toFixed(0)}% acima da referência.`} Referência: mediana do preço por m² dos imóveis anunciados que acompanho {i.refAmostra ? `no bairro (${i.refAmostra} imóveis)` : 'na cidade, pois a amostra do bairro ainda é pequena'}, out/2026. Calculado sobre a área construída: terreno grande, acabamento e idade mudam o valor justo.{i.terreno && i.terreno > 2 * i.area ? ' Este imóvel tem terreno amplo, o que eleva o preço por m² construído.' : ''}</p>
       </>}
       <h3 style={{ marginTop: temRef ? 28 : 24 }}>Simulação de financiamento</h3>
