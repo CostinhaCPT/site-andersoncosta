@@ -48,10 +48,10 @@ export default async function Pagina({ params }) {
               <div><h3>Pontos de atenção</h3>{i.atencao.length ? <ul className="lista-check lista-atencao">{i.atencao.map((d) => <li key={d}>{d}</li>)}</ul> : <p className="muted">Ainda estou levantando os pontos de atenção deste imóvel com o proprietário. Se quiser saber algo antes, me pergunte e eu confirmo.</p>}</div>
             </div>
             {i.video ? <div style={{ marginTop: 28, aspectRatio: '16/9' }}><iframe src={i.video} title={`Vídeo de ${i.titulo}`} style={{ width: '100%', height: '100%', border: 0, borderRadius: 10 }} allowFullScreen loading="lazy" /></div>
-              : <div className="box" style={{ marginTop: 28 }}><h3>Vídeo honesto</h3><p className="muted" style={{ margin: 0 }}>Eu gravo o vídeo honesto deste imóvel quando ele entra na sua curadoria: o que ele tem de melhor e o que merece atenção, antes de você visitar. Peça pelo WhatsApp.</p></div>}
+              : <div className="box" style={{ marginTop: 28 }}><h3>Visita comigo</h3><p className="muted" style={{ margin: 0 }}>Antes de visitar, a gente conversa rapidinho por mensagem ou ligação. Assim eu combino a visita no melhor dia para você, levo junto outras opções que façam sentido e mostro, no imóvel, o que ele tem de melhor e o que merece atenção.</p></div>}
             {i.precoVisivel && i.preco ? <Analise i={i} /> : null}
             <h2>Localização</h2>
-            <p className="muted">{i.bairro}, {i.cidade}, SC. O endereço exato eu passo no agendamento da visita, por segurança do proprietário.</p>
+            <p className="muted">{i.bairro}, {i.cidade}, SC. O endereço exato fica para a visita, que eu faço junto com você.</p>
             <iframe title={`Mapa do bairro ${i.bairro}`} loading="lazy" style={{ width: '100%', height: 300, border: 0, borderRadius: 10 }} src={`https://maps.google.com/maps?q=${encodeURIComponent(i.bairro + ', ' + i.cidade + ', SC')}&z=14&output=embed`} />
           </article>
           <aside className="lateral">
@@ -63,7 +63,7 @@ export default async function Pagina({ params }) {
               <p className="nota" style={{ marginTop: 4 }}>Referência do imóvel: {i.codigo}</p>
               <BotaoWhats texto={msg} dados={{ imovel: i.codigo }} className="btn btn-whats btn-full">Falar sobre este imóvel</BotaoWhats>
             </div>
-            <FormLead imovel={i} titulo="Quero visitar este imóvel" botao="Pedir visita pelo WhatsApp" />
+            <FormLead imovel={i} titulo="Quero conhecer este imóvel" botao="Conversar com o Anderson" />
           </aside>
         </div>
         <section className="sec" style={{ paddingBottom: 40 }}>

@@ -28,7 +28,7 @@ export default function Cookies() {
   if (!ver) return null;
   return (
     <div className="cookie" role="dialog" aria-label="Preferências de cookies">
-      Uso cookies para medir o desempenho do site e dos anúncios. Você escolhe. Detalhes na <Link href="/politica-de-privacidade/" style={{ color: '#fff' }}>política de privacidade</Link>.
+      <span>Uso cookies para medir o site e os anúncios. <Link href="/politica-de-privacidade/" style={{ color: '#fff' }}>Saiba mais</Link>.</span>
       <div className="acoes"><button className="btn btn-claro" onClick={() => escolher('sim')}>Aceitar</button><button className="btn btn-borda" style={{ color: '#ddd' }} onClick={() => escolher('nao')}>Recusar</button></div>
     </div>
   );

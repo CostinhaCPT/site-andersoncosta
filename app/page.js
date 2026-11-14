@@ -16,7 +16,7 @@ export default function Home() {
         <div className="wrap">
           <span className="eyebrow">Jaraguá do Sul e região · {SITE.creci}</span>
           <h1>Os imóveis certos para a sua família, sem dezenas de links</h1>
-          <p className="lead">Você me conta o que a sua família precisa. Eu seleciono os 3 imóveis de Jaraguá do Sul e região que fazem sentido, com análise de preço, custo total da compra e um vídeo honesto de cada um, com o que ele tem de bom e o que merece atenção.</p>
+          <p className="lead">Você me conta o que a sua família precisa. Eu seleciono os 3 imóveis de Jaraguá do Sul e região que fazem sentido, comparo o preço com o bairro e te conto o que cada um tem de bom e o que merece atenção.</p>
           <div className="acoes">
             <Link href="/curadoria/" className="btn btn-claro">Receba sua curadoria gratuita</Link>
             <Link href="/imoveis/" className="btn btn-borda">Ver imóveis</Link>
@@ -31,8 +31,8 @@ export default function Home() {
           <p className="muted" style={{ maxWidth: 640 }}>São três entregas, na mesma ordem para todo cliente, para você decidir com números e não só com fotos.</p>
           <div className="passos">
             <div className="passo"><span className="n">01</span><h3>Curadoria</h3><p className="muted">Os 3 imóveis que combinam com a sua família, o seu orçamento e a sua rotina. Não uma lista sem fim.</p></div>
-            <div className="passo"><span className="n">02</span><h3>Análise de compra</h3><p className="muted">Preço por m² comparado ao bairro, ITBI, escritura e registro, simulação de financiamento e checklist de documentos.</p></div>
-            <div className="passo"><span className="n">03</span><h3>Vídeo honesto</h3><p className="muted">Um tour gravado por mim mostrando o que o imóvel tem de melhor e o que merece atenção antes da visita.</p></div>
+            <div className="passo"><span className="n">02</span><h3>Análise de compra</h3><p className="muted">Preço por m² comparado ao bairro, simulação de financiamento e checklist de documentos.</p></div>
+            <div className="passo"><span className="n">03</span><h3>Visita comigo</h3><p className="muted">Depois de uma conversa rápida, eu vou junto em cada visita e mostro, no imóvel, o que ele tem de melhor e o que merece atenção.</p></div>
           </div>
           <p style={{ marginTop: 28 }}><Link href="/metodo-compra-segura/" style={{ color: '#fff' }}>Entenda o método →</Link></p>
         </div>

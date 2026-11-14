@@ -61,8 +61,8 @@ export default function Destaques({ lista, inicial }) {
   const abas = ABAS.filter(([k]) => k !== 'voce' || vistos.length);
   return (
     <>
-      <div className="vitrine-abas" role="tablist" aria-label="Escolha a vitrine">
-        {abas.map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={aba === k} className={aba === k ? 'on' : ''} onClick={() => setAba(k)}>{t}</button>)}
+      <div className="vitrine-abas" role="group" aria-label="Escolha a vitrine">
+        {abas.map(([k, t]) => <button key={k} type="button" aria-pressed={aba === k} className={aba === k ? 'on' : ''} onClick={() => setAba(k)}>{t}</button>)}
         {aba && aba !== 'novos' && <button type="button" className="vitrine-outros" onClick={() => setRodada((r) => r + 1)}>Mostrar outros ↻</button>}
       </div>
       {aba === 'voce' && <p className="muted vitrine-nota">Escolhidos a partir dos imóveis que você já viu aqui no site.</p>}

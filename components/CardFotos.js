@@ -16,9 +16,9 @@ export default function CardFotos({ fotos, titulo, selo, max = 8, prioridade = f
   return (
     <div className="foto">
       <div className="fotos-trilho" ref={ref} onScroll={rolou}>
-        {lista.map((f, k) => (
-          <img key={f} src={miniatura(f)} alt={k === 0 ? titulo : `${titulo}, foto ${k + 1}`} loading={k === 0 && prioridade ? 'eager' : 'lazy'} decoding="async" draggable="false" />
-        ))}
+        {lista.map((f, k) => (k <= n + 1
+          ? <img key={f} src={miniatura(f)} alt={k === 0 ? titulo : `${titulo}, foto ${k + 1}`} width="720" height="540" loading={k === 0 && prioridade ? 'eager' : 'lazy'} fetchPriority={k === 0 && prioridade ? 'high' : undefined} decoding="async" draggable="false" />
+          : <span key={f} className="foto-depois" aria-hidden="true" />))}
       </div>
       {selo && <span className="selo">{selo}</span>}
       {lista.length > 1 && <>

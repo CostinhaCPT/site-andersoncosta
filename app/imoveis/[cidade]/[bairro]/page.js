@@ -11,7 +11,7 @@ function refs(l) {
   return t.length ? ` Referência no bairro: ${t.join('; ')}.` : '';
 }
 const achar = (p) => bairros().find((b) => b.cidadeSlug === p.cidade && b.bairroSlug === p.bairro);
-export async function generateMetadata({ params }) { const b = achar(await params); return { title: `Imóveis à venda no ${b.bairro}, ${b.cidade}`, description: `Casas, geminados e apartamentos à venda no ${b.bairro}, ${b.cidade}, com preço por m², custo total de compra e pontos de atenção de cada imóvel.`, alternates: { canonical: `/imoveis/${b.cidadeSlug}/${b.bairroSlug}/` } }; }
+export async function generateMetadata({ params }) { const b = achar(await params); return { title: `Imóveis à venda no ${b.bairro}, ${b.cidade}`, description: `Casas, geminados e apartamentos à venda no ${b.bairro}, ${b.cidade}, com preço por m², simulação de financiamento e pontos de atenção de cada imóvel.`, alternates: { canonical: `/imoveis/${b.cidadeSlug}/${b.bairroSlug}/` } }; }
 export default async function Pagina({ params }) {
   const b = achar(await params);
   const l = imoveis.filter((i) => i.bairroSlug === b.bairroSlug).sort((x, y) => x.preco - y.preco);

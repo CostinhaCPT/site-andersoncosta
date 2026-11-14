@@ -15,7 +15,7 @@
   --linha: #e4e4e2;
   --texto: #070707;
   --texto-2: #55554f;
-  --whats: #1f9d55;
+  --whats: #15803d;
   --raio: 10px;
   --max: 1180px;
   --titulo: 'Syncopate', 'Metropolis', sans-serif;
@@ -385,7 +385,7 @@ p { margin: 0 0 1em; }
 /* simulação: 4 campos */
 .sim { grid-template-columns: repeat(4, 1fr); }
 .sim select { padding: 10px; border: 1px solid #d4d4d0; border-radius: 8px; font: inherit; width: 100%; background: #fff; }
-.sim .opc { color: #999; font-size: .7rem; }
+.sim .opc { color: #6b6b66; font-size: .7rem; }
 @media (max-width: 860px) { .sim { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 420px) { .sim { grid-template-columns: 1fr; } }
 .nota.aviso { background: #fff7e6; border-left: 3px solid #d89b00; padding: 8px 12px; border-radius: 4px; color: #6b4e00; }
@@ -432,3 +432,22 @@ p { margin: 0 0 1em; }
 .vitrine-abas .vitrine-outros { border: 0; background: none; text-decoration: underline; color: var(--cinza); margin-left: auto; }
 .vitrine-nota { font-size: .85rem; margin: 10px 0 0; }
 @media (max-width: 620px) { .vitrine-abas { flex-wrap: nowrap; overflow-x: auto; margin-right: -20px; padding-bottom: 4px; } .vitrine-abas button { flex: none; } .vitrine-abas .vitrine-outros { margin-left: 0; } }
+
+/* Onda 1 (14/11/2026) ---------------------------------------------------- */
+/* Fotos do carrossel que ainda não foram vistas: espaço reservado, sem download */
+.fotos-trilho .foto-depois { flex: 0 0 100%; width: 100%; height: 100%; background: #e9e9e7; scroll-snap-align: start; }
+/* Títulos pequenos do rodapé: contraste AA sobre o preto */
+.rodape .eyebrow { color: #a3a39e; }
+/* Aviso de cookies: faixa compacta no celular, acima da barra do imóvel quando ela existe */
+@media (max-width: 960px) { .cookie { bottom: 12px; } body:has(.barra-mobile) .cookie { bottom: 84px; } }
+@media (max-width: 700px) {
+  .cookie { left: 8px; right: 8px; padding: 10px 12px; font-size: .8rem; line-height: 1.4; display: flex; align-items: center; gap: 10px; }
+  .cookie > span { flex: 1; }
+  .cookie .acoes { margin-top: 0; flex-wrap: nowrap; gap: 6px; }
+  .cookie .btn { padding: 9px 12px; min-height: 40px; font-size: .78rem; }
+}
+/* Página do imóvel no celular: um só caminho de contato (a barra fixa), sem o lançador do chat por cima */
+@media (max-width: 960px) { body:has(.barra-mobile) .whats-fixo, body:has(.barra-mobile) .chat-lancador, body:has(.barra-mobile) .chat-convite { display: none; } }
+/* Alvos de toque de pelo menos 44 px */
+.rodape a { padding: 6px 0; margin: 2px 0; }
+.burger { min-width: 44px; min-height: 44px; }
