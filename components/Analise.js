@@ -4,7 +4,7 @@ import { brl } from '@/lib/format';
 import { BANCOS, ATUALIZADO, TETO_SFH, IDADE_MAX_FIM, COMPROMETIMENTO } from '@/lib/financiamento';
 // Impostos e cartório ficam fora do site: o Anderson passa os custos por escrito na conversa (decisão de 13/11/2026).
 const pct = (v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
-export default function Analise({ i }) {
+export default function Analise({ i, comp }) {
   const [bancoId, setBancoId] = useState('caixa');
   const banco = BANCOS.find((b) => b.id === bancoId) || BANCOS[0];
   const entMin = 100 - banco.cota;
@@ -21,8 +21,7 @@ export default function Analise({ i }) {
   const p1 = amort + fin * j; // primeira parcela SAC
   const pN = amort + amort * j; // última parcela SAC
   const renda = p1 / COMPROMETIMENTO;
-  const temRef = !!(i.precoM2 && i.refM2);
-  const dif = temRef ? ((i.precoM2 - i.refM2) / i.refM2) * 100 : 0;
+  const temRef = !!comp;
   const avisoEnt = (+entTxt || 0) < entMin;
   const avisoPrazo = (+anosTxt || 0) > prazoTeto;
   return (
@@ -31,12 +30,21 @@ export default function Analise({ i }) {
       <h2>Análise de compra</h2>
       <p className="muted">Uma leitura rápida para comparar com calma. A análise completa, com documentação, eu entrego na conversa.</p>
       {temRef && <>
-      <h3 style={{ marginTop: 24 }}>O m² deste imóvel contra a referência</h3>
+      <h3 style={{ marginTop: 24 }}>O m² deste imóvel contra {comp.parecidos}</h3>
       <div className="barras-m2 num">
-        <div><span>Este imóvel</span><i style={{ width: (100 * i.precoM2 / Math.max(i.precoM2, i.refM2)) + '%' }} /><b>{brl(i.precoM2)}</b></div>
-        <div className="ref"><span>{i.refAmostra ? `Mediana de ${i.refAmostra} ${i.tipoSlug === 'apartamento' ? 'apartamentos' : 'casas e geminados'} no bairro` : `Mediana de ${i.tipoSlug === 'apartamento' ? 'apartamentos' : 'casas e geminados'} em Jaraguá do Sul`}</span><i style={{ width: (100 * i.refM2 / Math.max(i.precoM2, i.refM2)) + '%' }} /><b>{brl(i.refM2)}</b></div>
+        <div><span>Este imóvel</span><i style={{ width: (100 * comp.m2 / Math.max(comp.m2, comp.ref)) + '%' }} /><b>{brl(comp.m2)}</b></div>
+        <div className="ref"><span>Mediana de {comp.n} {comp.parecidos} {comp.onde === 'bairro' ? `no ${i.bairro}` : `em ${i.cidade}`}</span><i style={{ width: (100 * comp.ref / Math.max(comp.m2, comp.ref)) + '%' }} /><b>{brl(comp.ref)}</b></div>
       </div>
-      <p className="nota">{Math.abs(dif) < 5 ? 'Em linha com a referência.' : dif < 0 ? `${Math.abs(dif).toFixed(0)}% abaixo da referência.` : `${dif.toFixed(0)}% acima da referência.`} Referência: mediana do preço por m² dos imóveis anunciados que acompanho {i.refAmostra ? `no bairro (${i.refAmostra} imóveis)` : 'na cidade, pois a amostra do bairro ainda é pequena'}, out/2026. Calculado sobre a área construída: terreno grande, acabamento e idade mudam o valor justo.{i.terreno && i.terreno > 2 * i.area ? ' Este imóvel tem terreno amplo, o que eleva o preço por m² construído.' : ''}</p>
+      <p className="comp-veredito">{Math.abs(comp.dif) < 8 ? `No preço de ${comp.parecidos}.` : `${Math.abs(comp.dif)}% ${comp.dif > 0 ? 'acima' : 'abaixo'} de ${comp.parecidos}.`}</p>
+      {comp.incerto && <p className="nota aviso">Diferença grande demais para ser só preço. Normalmente é metragem informada de outro jeito no anúncio (área total no lugar da construída, por exemplo) ou um padrão de imóvel bem diferente. Eu confiro com o anunciante antes de você tirar conclusão.</p>}
+      {comp.dif >= 8 && !comp.incerto && comp.motivos.length > 0 && <div className="comp-motivos"><b>O que ajuda a explicar a diferença</b><ul>{comp.motivos.map((m) => <li key={m}>{m.charAt(0).toUpperCase() + m.slice(1)}.</li>)}</ul></div>}
+      {comp.dif <= -8 && !comp.incerto && <p className="nota">Preço abaixo de imóveis parecidos pode ser oportunidade ou sinal de algo a conferir (estado, documentação, localização na rua). Eu confiro isso antes da visita.</p>}
+      <details className="comp-lista">
+        <summary>Quais imóveis entraram na conta</summary>
+        <p className="nota">Critério: {comp.filtro}, {comp.onde === 'bairro' ? `no ${i.bairro}` : `em ${i.cidade}`}.{comp.ignorou.length ? ` Não havia amostra suficiente considerando ${comp.ignorou.join(' e ')}, então a comparação inclui imóveis sem esse item.` : ''}</p>
+        <ul>{comp.exemplos.map((e) => <li key={e.codigo}><a href={`/imovel/${e.slug}/`}>{e.titulo}</a> <span className="num">· {Math.round(e.area)} m² · {brl(e.m2)}/m²</span></li>)}</ul>
+      </details>
+      <p className="nota">Preços de anúncio dos imóveis que acompanho, calculados sobre a área {i.tipoSlug === 'apartamento' ? 'privativa' : 'construída'}. Acabamento, estado de conservação e o que fica no imóvel mudam o valor justo, e é isso que eu reviso com você na conversa.</p>
       </>}
       <h3 style={{ marginTop: temRef ? 28 : 24 }}>Simulação de financiamento</h3>
       {i.aceitaFinanciamento === false && <p className="nota aviso">O anúncio deste imóvel informa que ele não aceita financiamento. A simulação abaixo serve só como referência.</p>}

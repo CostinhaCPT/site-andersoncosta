@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Galeria from '@/components/Galeria';
 import Analise from '@/components/Analise';
+import { comparar } from '@/lib/comparaveis';
 import Card from '@/components/Card';
 import { BotaoWhats } from '@/components/Whats';
 import { imoveis, porSlug, semelhantes } from '@/lib/imoveis';
@@ -23,9 +24,12 @@ export default async function Pagina({ params }) {
     offers: { '@type': 'Offer', ...(i.precoVisivel && i.preco ? { price: i.preco, priceCurrency: 'BRL' } : {}), availability: i.reservado ? 'https://schema.org/LimitedAvailability' : 'https://schema.org/InStock', seller: { '@type': 'RealEstateAgent', name: SITE.marca, telephone: '+' + SITE.whatsapp, url: SITE.dominio } },
     ...(i.criadoEm ? { datePosted: String(i.criadoEm).slice(0, 10) } : {}),
     mainEntity: { '@type': i.tipoSlug === 'apartamento' ? 'Apartment' : 'SingleFamilyResidence', numberOfBedrooms: i.quartos, numberOfBathroomsTotal: i.banheiros, ...(i.area ? { floorSize: { '@type': 'QuantitativeValue', value: i.area, unitCode: 'MTK' } } : {}), address: { '@type': 'PostalAddress', addressLocality: i.cidade, addressRegion: 'SC', addressCountry: 'BR' } } };
-  const dif = i.precoM2 && i.refM2 && i.refAmostra ? Math.round(((i.precoM2 - i.refM2) / i.refM2) * 100) : 0;
-  const bom = [...i.destaques, ...(dif <= -5 ? [`Preço ${Math.abs(dif)}% abaixo da mediana do m² do bairro`] : [])];
-  const pesa = [...i.atencao, ...(dif >= 5 ? [`Preço ${dif}% acima da mediana do m² do bairro (veja a análise)`] : [])];
+  // Preço contra imóveis parecidos de verdade (mesmo tipo, tamanho e atributos), nunca contra a média geral do bairro
+  const comp = comparar(i);
+  const dif = comp ? comp.dif : 0;
+  const bom = [...i.destaques, ...(dif <= -10 && !comp.incerto ? [`Preço do m² ${Math.abs(dif)}% abaixo de ${comp.parecidos} (veja a análise)`] : [])];
+  // Só vira ponto de atenção quando a diferença é grande e nada no próprio imóvel a explica
+  const pesa = [...i.atencao, ...(dif >= 20 && !comp.incerto && !comp.motivos.length ? [`Preço do m² ${dif}% acima de ${comp.parecidos} (veja a análise)`] : [])];
   return (
     <div className="pagina-imovel" data-codigo={i.codigo}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
@@ -58,7 +62,7 @@ export default async function Pagina({ params }) {
               <div><h2>O que tem de bom</h2><ul>{bom.map((d) => <li key={d}>{d}</li>)}</ul></div>
               <div className="pesa"><h2>O que merece atenção</h2>{pesa.length ? <ul>{pesa.map((d) => <li key={d}>{d}</li>)}</ul> : <p className="muted">Ainda estou levantando os pontos de atenção deste imóvel. Se quiser saber algo antes da visita, me pergunte e eu confirmo.</p>}</div>
             </div>
-            {i.precoVisivel && i.preco ? <Analise i={i} /> : null}
+            {i.precoVisivel && i.preco ? <Analise i={i} comp={comp} /> : null}
             {i.video
               ? <div className="bloco-imovel" id="video"><span className="eyebrow">Vídeo</span><h2>Eu mostro o imóvel como ele é</h2><div className="video-16x9"><iframe src={i.video} title={`Vídeo de ${i.titulo}`} allowFullScreen loading="lazy" /></div></div>
               : null}
@@ -77,7 +81,7 @@ export default async function Pagina({ params }) {
             <div className="caixa-preco">
               <span className="nota">Valor</span>
               <div className="preco-grande num">{i.precoVisivel ? brl(i.preco) : 'Sob consulta'}</div>
-              {i.precoM2 && <p className="nota num">{brl(i.precoM2)} por m²{dif ? ` · ${Math.abs(dif)}% ${dif > 0 ? 'acima' : 'abaixo'} do bairro` : ''} · <a href="#analise">ver análise</a></p>}
+              {i.precoM2 && <p className="nota num">{brl(i.precoM2)} por m² · <a href="#analise">comparar com {comp ? comp.parecidos : 'imóveis parecidos'}</a></p>}
               {i.reservado && <p className="nota" style={{ fontWeight: 700 }}>Reservado: pode voltar à venda, pergunte.</p>}
               <BotaoWhats texto={msg} dados={{ imovel: i.codigo }} className="btn btn-whats btn-full btn-grande">Conversar sobre este imóvel</BotaoWhats>
               <div className="visita-comigo"><img src="/marca/simbolo-preto.svg" alt="" width="36" height="36" /><p><b>Visita comigo.</b> Eu vou junto, mostro o que olhar e respondo na hora. {SITE.nome}, {SITE.creci}.</p></div>
