@@ -46,7 +46,7 @@ export default async function Pagina({ params }) {
             {i.resumo && <p className="imovel-resumo">{i.resumo}</p>}
             <div className="bom-pesa">
               <div><h2>O que tem de bom</h2><ul>{bom.map((d) => <li key={d}>{d}</li>)}</ul></div>
-              <div className="pesa"><h2>O que merece atenção</h2>{pesa.length ? <ul>{pesa.map((d) => <li key={d}>{d}</li>)}</ul> : <p className="muted">Ainda estou levantando os pontos de atenção deste imóvel com o proprietário. Se quiser saber algo antes, me pergunte e eu confirmo.</p>}</div>
+              <div className="pesa"><h2>O que merece atenção</h2>{pesa.length ? <ul>{pesa.map((d) => <li key={d}>{d}</li>)}</ul> : <p className="muted">Ainda estou levantando os pontos de atenção deste imóvel. Se quiser saber algo antes da visita, me pergunte e eu confirmo.</p>}</div>
             </div>
             {i.precoVisivel && i.preco ? <Analise i={i} /> : null}
             {i.video

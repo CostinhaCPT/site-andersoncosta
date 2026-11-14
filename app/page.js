@@ -52,7 +52,7 @@ export default function Home() {
           <div><b>Visita sempre comigo</b><span>Nada de chave na portaria nem desconhecido abrindo a porta.</span></div>
           <div><b>Preço comparado ao bairro</b><span>O m² de cada imóvel contra a mediana da região.</span></div>
           <div><b>O que pesa, por escrito</b><span>Cada ficha diz o que é bom e o que merece atenção.</span></div>
-          <div><b className="num">{imoveis.length} imóveis acompanhados</b><span>Os meus e os de corretores parceiros, num só lugar.</span></div>
+          <div><b className="num">{imoveis.length} imóveis à venda aqui</b><span>Os meus e os de corretores parceiros, num só lugar.</span></div>
         </div>
       </section>
 
@@ -89,7 +89,7 @@ export default function Home() {
           <img src="/img/anderson-sofa-2.webp" alt="Anderson Costa, corretor de imóveis em Jaraguá do Sul" loading="lazy" decoding="async" width="1067" height="1600" />
           <div>
             <span className="eyebrow">Quem vai com você</span>
-            <p className="citacao">“Eu só te levo a um imóvel que eu mesmo já olhei com cuidado. Se tiver algo que pesa, você vai saber antes.”</p>
+            <p className="citacao">“Se um imóvel tem algo que pesa, você fica sabendo antes de sair de casa.”</p>
             <p>Sou o Anderson Costa, corretor em Jaraguá do Sul. Trabalhei quase 20 anos com vendas e marketing antes de escolher os imóveis. Hoje acompanho cada família de perto, da curadoria à escritura.</p>
             <p className="muted">{SITE.creci} · Jaraguá do Sul e região</p>
             <Link href="/sobre/" className="link-forte">Conheça minha história →</Link>
@@ -123,7 +123,7 @@ export default function Home() {
           <div>
             <span className="eyebrow">Curadoria gratuita</span>
             <h2>Me conta o que sua família precisa. Eu te mando os 3 imóveis certos.</h2>
-            <p className="muted">Sem compromisso e sem lista de 40 opções. Se nada fizer sentido agora, eu te aviso quando aparecer.</p>
+            <p className="muted">Sem compromisso e sem lista de 40 opções. Só os que combinam com a sua rotina, com o que cada um tem de bom e o que pesa.</p>
           </div>
           <CuradoriaCurta />
         </div>
