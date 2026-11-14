@@ -541,7 +541,6 @@ h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -.005em; }
 .h-hero-texto .lead { margin: 0; }
 .h-hero-foto { position: relative; display: block; border-radius: var(--raio); overflow: hidden; aspect-ratio: 4 / 5; background: #e9e9e7; text-decoration: none; }
 .h-hero-foto img { width: 100%; height: 100%; object-fit: cover; transition: transform .8s cubic-bezier(.2,.8,.2,1); }
-.h-hero-foto:hover img { transform: scale(1.02); }
 .h-hero-legenda { position: absolute; left: 16px; right: 16px; bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: rgba(255,255,255,.95); border-radius: 12px; padding: 14px 18px; }
 .h-hero-legenda > span { display: flex; flex-direction: column; min-width: 0; }
 .h-hero-legenda small { font-size: .78rem; color: var(--texto-2); }
@@ -603,7 +602,6 @@ h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -.005em; }
 .card:hover { box-shadow: none; transform: none; }
 .card .foto { aspect-ratio: 4 / 5; border-radius: var(--raio); overflow: hidden; background: #e9e9e7; }
 .card .foto img { transition: transform .8s cubic-bezier(.2,.8,.2,1); }
-.card:hover .foto img { transform: scale(1.025); }
 .card .selo { left: 12px; top: 12px; background: rgba(255,255,255,.95); color: var(--texto); font-size: .74rem; letter-spacing: 0; text-transform: none; font-weight: 600; padding: 5px 12px; z-index: 2; }
 .card .corpo { padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .card-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -700,7 +698,6 @@ h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -.005em; }
 .galeria { height: auto; display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: repeat(2, minmax(0, 280px)); gap: 8px; border-radius: var(--raio); overflow: hidden; position: relative; margin-top: 16px; }
 .galeria button { padding: 0; border: 0; background: #e9e9e7; cursor: zoom-in; overflow: hidden; }
 .galeria button img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
-.galeria button:hover img { transform: scale(1.03); }
 .galeria button:first-child { grid-row: span 2; }
 .galeria.g1 { grid-template-columns: 1fr; } .galeria.g1 button:first-child { grid-row: span 2; }
 .galeria.g2, .galeria.g3 { grid-template-columns: 2fr 1fr; }
@@ -773,4 +770,17 @@ h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -.005em; }
   .imovel-grid { grid-template-columns: minmax(0, 1fr) 340px; gap: 40px; }
   .h-metodo, .h-quem { gap: 48px; }
   .h-curadoria { gap: 56px; }
+}
+
+/* Toque no celular: as fotos não "soltam" do bloco ao segurar ou arrastar */
+.fotos-trilho, .trilho-celular { overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+.fotos-trilho img, .fotos-trilho .foto-depois { scroll-snap-stop: always; }
+.card, .card img, .h-hero-foto img, .galeria img, .galeria-movel img, .h-metodo > img, .h-quem > img { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: transparent; }
+.card .foto img, .h-hero-foto img { transition: none; }
+/* zoom suave só com mouse; no toque ele brigava com o deslize */
+@media (hover: hover) and (pointer: fine) {
+  .card .foto img, .h-hero-foto img { transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+  .card:hover .foto img { transform: scale(1.025); }
+  .h-hero-foto:hover img { transform: scale(1.02); }
+  .galeria button:hover img { transform: scale(1.03); }
 }

@@ -32,7 +32,7 @@ export default function Galeria({ fotos, titulo, video }) {
       {/* celular: arrasta para o lado direto na página */}
       <div className="galeria-movel">
         <div className="fotos-trilho" ref={trilho} onScroll={() => { const el = trilho.current; if (el) setN(Math.round(el.scrollLeft / el.clientWidth)); }}>
-          {fotos.map((f, k) => <img key={f} src={k < 2 ? f : miniatura(f)} alt={`${titulo}, foto ${k + 1}`} loading={k === 0 ? 'eager' : 'lazy'} decoding="async" onClick={() => setI(k)} />)}
+          {fotos.map((f, k) => <img key={f} src={f} alt={`${titulo}, foto ${k + 1}`} loading={k === 0 ? 'eager' : 'lazy'} fetchPriority={k === 0 ? 'high' : undefined} decoding="async" draggable="false" onClick={() => setI(k)} />)}
         </div>
         <span className="cont-movel">{n + 1} / {total}</span>
         {video && <a href="#video" className="galeria-chip galeria-chip-movel">▶ Vídeo</a>}

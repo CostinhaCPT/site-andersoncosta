@@ -19,7 +19,10 @@ export default function Home() {
     if (vitrine.length >= 3) break;
     if (!vitrine.includes(i)) vitrine.push(i);
   }
-  const capa = porCodigo.get(SITE.capa) || vitrine[0];
+  // Uma foto por dia, em rodízio (o site é gerado de novo todo dia, então a troca acontece sozinha)
+  const capasOk = SITE.capas.map(([c, n]) => [porCodigo.get(c), n]).filter(([i, n]) => livre(i) && i.fotos[n]);
+  const [capa, nCapa] = capasOk.length ? capasOk[Math.floor((Date.now() - 3 * 36e5) / 864e5) % capasOk.length] : [vitrine[0], 0];
+  const fotoCapa = capa?.fotos[nCapa];
   const bairrosComImovel = new Set(imoveis.filter((i) => i.cidadeSlug === 'jaragua-do-sul').map((i) => i.bairroSlug));
   return (
     <>
@@ -34,7 +37,7 @@ export default function Home() {
           </div>
           {capa && (
             <Link href={`/imovel/${capa.slug}/`} className="h-hero-foto">
-              <img src={capa.fotos[0]} srcSet={`${miniatura(capa.fotos[0])} 540w, ${capa.fotos[0]} 1200w`} sizes="(max-width: 960px) 100vw, 560px" alt={capa.titulo} width="1200" height="1600" fetchPriority="high" decoding="async" />
+              <img src={fotoCapa} srcSet={`${miniatura(fotoCapa)} 540w, ${fotoCapa} 1200w`} sizes="(max-width: 960px) 100vw, 560px" alt={capa.titulo} width="1200" height="1600" fetchPriority="high" decoding="async" />
               <span className="h-hero-legenda">
                 <span><small>{capa.bairro} · Selecionada por mim</small><b>{capa.titulo}</b></span>
                 {capa.precoVisivel && capa.preco ? <b className="num">{brl(capa.preco)}</b> : null}
@@ -60,7 +63,7 @@ export default function Home() {
             <Link href="/imoveis/" className="link-forte">Ver os {imoveis.length} imóveis →</Link>
           </div>
           <div className="grade3 trilho-celular">
-            {vitrine.map((i) => <Card key={i.codigo} i={i} atencao />)}
+            {vitrine.map((i) => <Card key={i.codigo} i={i} atencao unica />)}
           </div>
         </div>
       </section>
