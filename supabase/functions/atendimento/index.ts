@@ -88,7 +88,7 @@ async function modelo() {
   return MODELO;
 }
 
-async function claude(system: string, messages: unknown[]) {
+async function claude(system: string, messages: unknown[], semFerramentas = false) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -97,6 +97,7 @@ async function claude(system: string, messages: unknown[]) {
     body: JSON.stringify({
       model: await modelo(), max_tokens: 1024,
       system: [{ type: "text", text: system }], tools: FERRAMENTAS, messages,
+      ...(semFerramentas ? { tool_choice: { type: "none" } } : {}),
     }),
   });
   const j = await r.json();
@@ -1207,8 +1208,10 @@ async function turno(
     ];
   }
   const partes: string[] = [];
+  const trilha: string[] = [];
   for (let rodada = 0; rodada < 6; rodada++) {
-    const resp = await claude(system, messages);
+    const resp = await claude(system, messages, rodada === 5);
+    trilha.push(`${resp.stop_reason}:${(resp.content ?? []).map((b: any) => b.type === "tool_use" ? b.name : b.type).join("+")}`);
     const usos = resp.content.filter((b: any) => b.type === "tool_use");
     // Texto dito antes de usar uma ferramenta ("vou buscar...") não vai para a pessoa
     if (resp.stop_reason !== "tool_use" || !usos.length) {
@@ -1228,6 +1231,15 @@ async function turno(
     messages.push({ role: "user", content: resultados });
   }
 
+  if (!partes.length) {
+    // The model ended without text (or kept calling tools): ask once more for the reply itself, tools off
+    console.error("turno sem texto", JSON.stringify(trilha));
+    try {
+      if (messages[messages.length - 1].role === "assistant") messages.push({ role: "user", content: "(continue: responda à pessoa agora, só com o texto da mensagem)" });
+      const resp = await claude(system, messages, true);
+      for (const b of resp.content ?? []) if (b.type === "text" && b.text.trim()) partes.push(b.text.trim());
+    } catch (e) { console.error("turno retry", e); }
+  }
   const resposta = partes.join("\n\n").replace(/\s*—\s*/g, ", ").trim() ||
     "Desculpa, me perdi aqui. Pode repetir o que você procura?";
   await sb.from("mensagens").insert({ conversa_id: ctx.conversaId, papel: "assistente", conteudo: resposta });
