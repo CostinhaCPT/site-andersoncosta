@@ -15,7 +15,10 @@ const slugify = (s: string) => String(s || "").normalize("NFD").replace(/[̀-ͯ]
 const numero = (s: unknown) => {
   if (s === null || s === undefined || s === "") return null;
   if (typeof s === "number") return s;
-  const t = String(s).replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  // "1.234,56" (vírgula decimal), "1.234.567" (só milhar) ou "170.61" (ponto decimal, como a Domus manda as áreas)
+  let t = String(s).replace(/[^\d,.-]/g, "");
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
   const n = Number(t);
   return Number.isFinite(n) && n > 0 ? n : null;
 };
