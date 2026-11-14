@@ -1,0 +1,42 @@
+# App instalável (admin)
+AddType application/manifest+json .webmanifest
+<IfModule mod_headers.c>
+  <Files "sw-admin.js">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Service-Worker-Allowed "/admin/"
+  </Files>
+  # Páginas e versão sempre conferidas com o servidor, para atualizações aparecerem na hora
+  <FilesMatch "\.(html|txt|xml)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+</IfModule>
+
+# Endereços antigos dos imóveis (com código) apontam para os novos
+RewriteEngine On
+# Pretty landing page links: /lp/abc123 -> /lp/?c=abc123
+RewriteRule ^lp/([a-z0-9-]{4,})/?$ /lp/?c=$1 [R=302,L]
+
+# Endereço único: www vai para o domínio principal
+RewriteCond %{HTTP_HOST} ^www\.andersoncostaimoveis\.com\.br$ [NC]
+RewriteRule ^(.*)$ https://andersoncostaimoveis.com.br/$1 [R=301,L]
+
+RewriteRule ^imovel/ac-0001-geminado-3-quartos-tres-rios-do-norte-jaragua-do-sul/?$ /imovel/geminado-mobiliado-energia-solar-tres-rios-norte-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0002-apartamento-3-quartos-ilha-da-figueira-jaragua-do-sul/?$ /imovel/apartamento-3-quartos-vista-aberta-ilha-figueira-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0003-apartamento-3-quartos-centro-jaragua-do-sul/?$ /imovel/apartamento-novo-3-quartos-centro-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0004-geminado-3-quartos-amizade-jaragua-do-sul/?$ /imovel/geminado-esquina-lavabo-amizade-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0005-geminado-3-quartos-ilha-da-figueira-jaragua-do-sul/?$ /imovel/geminado-quintal-2-vagas-ilha-figueira-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0006-geminado-3-quartos-tres-rios-do-norte-jaragua-do-sul/?$ /imovel/geminado-quintal-piscina-tres-rios-norte-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0007-geminado-3-quartos-amizade-jaragua-do-sul/?$ /imovel/geminado-duplex-garagem-fechada-2-carros-amizade-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0008-geminado-3-quartos-tres-rios-do-norte-jaragua-do-sul/?$ /imovel/geminado-duplex-suite-closet-tres-rios-norte-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0009-casa-3-quartos-nereu-ramos-jaragua-do-sul/?$ /imovel/casa-hidromassagem-fogao-lenha-nereu-ramos-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0010-casa-3-quartos-tres-rios-do-sul-jaragua-do-sul/?$ /imovel/casa-terrea-area-festas-tres-rios-sul-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0011-geminado-3-quartos-amizade-jaragua-do-sul/?$ /imovel/geminado-quintal-grande-amizade-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0012-geminado-3-quartos-centro-jaragua-do-sul/?$ /imovel/geminado-3-quartos-centro-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0013-casa-3-quartos-ilha-da-figueira-jaragua-do-sul/?$ /imovel/casa-228m2-area-festas-ilha-figueira-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0014-geminado-3-quartos-amizade-jaragua-do-sul/?$ /imovel/geminado-duplex-piscina-privativa-amizade-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0015-casa-3-quartos-ilha-da-figueira-jaragua-do-sul/?$ /imovel/casa-energia-solar-quintal-piscina-ilha-figueira-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0016-apartamento-3-quartos-centro-jaragua-do-sul/?$ /imovel/apartamento-3-suites-sol-manha-centro-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0017-casa-3-quartos-amizade-jaragua-do-sul/?$ /imovel/casa-terrea-escritorio-suite-closet-amizade-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0018-casa-3-quartos-tres-rios-do-norte-jaragua-do-sul/?$ /imovel/casa-nova-pe-direito-alto-tres-rios-norte-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0019-casa-3-quartos-vila-nova-jaragua-do-sul/?$ /imovel/casa-terrea-2-suites-rua-sem-saida-vila-nova-jaragua-do-sul/ [R=301,L]
+RewriteRule ^imovel/ac-0020-casa-3-quartos-tres-rios-do-norte-jaragua-do-sul/?$ /imovel/casa-piscina-vista-verde-tres-rios-norte-jaragua-do-sul/ [R=301,L]
