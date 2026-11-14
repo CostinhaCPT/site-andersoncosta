@@ -5,6 +5,10 @@ AddType application/manifest+json .webmanifest
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Service-Worker-Allowed "/admin/"
   </Files>
+  # Páginas e versão sempre conferidas com o servidor, para atualizações aparecerem na hora
+  <FilesMatch "\.(html|txt|xml)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
 </IfModule>
 
 # Endereços antigos dos imóveis (com código) apontam para os novos
