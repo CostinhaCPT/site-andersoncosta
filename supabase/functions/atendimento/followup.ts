@@ -15,9 +15,9 @@ export type Auto = {
   template_params?: Record<string, string[]>;
 };
 export const AUTO_PADRAO: Auto = {
-  ativo: false, modo: "ensaio", max_toques: 4, janela_dias: 10, intervalo_h: 48, primeiro_apos_h: 18, teto_dia: 30,
+  ativo: false, modo: "ensaio", max_toques: 3, janela_dias: 10, intervalo_h: 12, primeiro_apos_h: 3, teto_dia: 30,
   janela_inicio: "08:00", janela_fim: "21:00", max_optout_dia: 3, numeros_teste: ["5547989133845"],
-  templates: { "1": "retomada_atendimento", "2": "opcoes_curadoria", "3": "retomada_visita", "4": "encerramento_contato" },
+  templates: { "3": "encerramento_contato" },
   idioma: "pt_BR",
 };
 
@@ -38,6 +38,30 @@ function janelaFaixa(f: Faixa, noturno: boolean, cfg: Auto): [number, number] {
 export const faixaDe = (ms: number): Faixa => { const h = local(ms).h; return h < 12 ? "manha" : h < 19 ? "tarde" : "noite"; };
 const noturnoDe = (ms: number) => { const h = local(ms).h; return h >= 21 || h < 6; };
 const diaBloqueado = (ms: number) => { const l = local(ms); return l.dow === 0 || feriado(AGENDA_PADRAO, l.y, l.m, l.d); };
+
+/**
+ * Lu 2.0 timing: the first moment >= ms that is a sensible time to message someone.
+ * Never on Sunday or holiday, never before 8h, never during lunch and school pickup (11h30 to 14h), never from 21h.
+ */
+export function alvoPermitido(ms: number): number {
+  for (let k = 0; k < 15; k++) {
+    const t = k === 0 ? ms : deLocal(local(ms + k * 24 * H).y, local(ms + k * 24 * H).m, local(ms + k * 24 * H).d, 0) + 8 * H + 30 * 60_000;
+    const l = local(t), base = deLocal(l.y, l.m, l.d, 0), min = l.h * 60 + l.mi;
+    if (diaBloqueado(base + 12 * H)) continue;
+    const jitter = Math.floor(Math.random() * 25) * 60_000;
+    if (min < 8 * 60 + 30) return base + (8 * 60 + 30) * 60_000 + jitter;
+    if (min >= 11 * 60 + 30 && min < 14 * 60 + 30) return base + (14 * 60 + 30) * 60_000 + jitter;
+    if (min >= 20 * 60 + 30) continue;
+    return t;
+  }
+  return ms + 7 * 24 * H;
+}
+const permitidoAgora = (ms: number) => {
+  const l = local(ms), min = l.h * 60 + l.mi;
+  return !diaBloqueado(ms) && min >= 8 * 60 && min < 21 * 60 && !(min >= 11 * 60 + 30 && min < 14 * 60);
+};
+/** Same local time of day as ref, on the day of dia. */
+const mesmaHora = (dia: number, ref: number) => { const d = local(dia), r = local(ref); return deLocal(d.y, d.m, d.d, 0) + (r.h * 60 + r.mi) * 60_000; };
 
 /** First moment >= depois inside band f, never on Sunday or holiday. Random minute inside the band. */
 export function proximoSlot(depois: number, f: Faixa, noturno: boolean, cfg: Auto): number {
@@ -69,11 +93,13 @@ export async function imovelDoLead(sb: SupabaseClient, lead: Record<string, any>
 
 export function textoPasso(passo: number, lead: Record<string, any>, imovel = "a sua busca de imóvel") {
   const nome = primeiroNome(lead.nome);
-  const oi = nome === "tudo bem" ? "Oi, tudo bem?" : `Oi, ${nome}!`;
-  if (passo === 1) return `${oi} Aqui é a Lu, do time do Anderson Costa. Sobre ${imovel}, ficou alguma dúvida? Se quiser, te mando o vídeo e o custo total da compra para você avaliar com calma.`;
-  if (passo === 2) return `${oi} É a Lu, do time do Anderson. Separei algumas opções que combinam com o que você me contou. Quer que eu te mande por aqui?`;
-  if (passo === 3) return `${oi} O Anderson tem horários livres nesta semana para você conhecer ${imovel === "a sua busca de imóvel" ? "os imóveis que combinam com a sua busca" : imovel} de perto. Prefere manhã, tarde ou sábado?`;
-  return `${nome === "tudo bem" ? "Oi." : `Oi, ${nome}.`} Não quero ser insistente, então vou pausar por aqui. Se a busca voltar a fazer sentido, é só responder esta mensagem. Anderson Costa, CRECI SC 68594.`;
+  const oi = nome === "tudo bem" ? "Oi!" : `Oi, ${nome}!`;
+  const alvo = imovel === "a sua busca de imóvel" || imovel === "os imóveis que combinam com a sua busca" ? "a sua busca" : imovel;
+  if (passo === 1) return `${oi} Aqui é a Lu, do time do Anderson. Quando tiver um minutinho, sigo com você sobre ${alvo}. Prefere que eu continue por aqui?`;
+  if (passo === 2) return alvo === "a sua busca"
+    ? `${oi} Se ainda estiver procurando, me conta em uma frase o que não pode faltar e eu separo o que combina.`
+    : `${oi} Sobre ${alvo}: se quiser, te mostro como o preço fica em relação ao bairro. Pode ser?`;
+  return `${nome === "tudo bem" ? "Oi." : `Oi, ${nome}.`} ${alvo === "a sua busca" ? "A busca" : alvo[0].toUpperCase() + alvo.slice(1)} ainda faz sentido para vocês? Se não fizer, um "não" já basta e eu paro por aqui.`;
 }
 
 async function log(sb: SupabaseClient, lead_id: string | null, evento: string, detalhe: Record<string, unknown> = {}) {
@@ -170,24 +196,23 @@ async function planejar(sb: SupabaseClient, cfg: Auto) {
     const proximo = lista.length ? Math.max(...lista.map((p) => p.passo)) + 1 : 1;
     if (proximo > cfg.max_toques) continue;
     if (lista.some((p) => ["cancelado", "bloqueado", "falhou"].includes(p.status) && p.passo === proximo - 1)) continue;
-    const noturno = noturnoDe(episodio);
-    let depois: number, faixa: Faixa;
+    // Lu 2.0: touch 1 the same day (about 3h later, never at lunch; after 17h it goes at 19h30 or next morning),
+    // touch 2 the next day near the time the person first talked, touch 3 four to five days later.
+    let depois: number;
     if (proximo === 1) {
-      depois = h.ultima + cfg.primeiro_apos_h * H;
-      const evitar = faixaDe(h.ultima);
-      const opc = FAIXAS.filter((f) => f !== evitar).map((f) => ({ f, t: proximoSlot(depois, f, noturno, cfg) })).sort((a, b) => a.t - b.t)[0];
-      faixa = opc.f;
-      depois = opc.t;
+      const hu = local(h.ultima).h;
+      if (hu >= 17) {
+        const noite = mesmaHora(h.ultima, deLocal(2000, 1, 1, 0) + 19.5 * H);
+        depois = alvoPermitido(h.ultima < noite - H ? noite : h.ultima + 12 * H);
+      } else depois = alvoPermitido(h.ultima + cfg.primeiro_apos_h * H);
     } else {
       const ult = lista[lista.length - 1];
-      const base = Date.parse(ult.executado_em ?? ult.agendado_para) + cfg.intervalo_h * H;
-      const usadas = new Set(lista.map((p) => p.faixa as Faixa));
-      const livres = FAIXAS.filter((f) => !usadas.has(f));
-      const cand = livres.length ? livres : [await melhorFaixa(sb)];
-      const opc = cand.map((f) => ({ f, t: proximoSlot(base, f, noturno, cfg) })).sort((a, b) => a.t - b.t)[0];
-      faixa = opc.f;
-      depois = opc.t;
+      const feito = Date.parse(ult.executado_em ?? ult.agendado_para);
+      depois = proximo === 2
+        ? alvoPermitido(Math.max(mesmaHora(feito + 24 * H, episodio), feito + cfg.intervalo_h * H))
+        : alvoPermitido(mesmaHora(feito + 4 * 24 * H, episodio));
     }
+    const faixa: Faixa = faixaDe(depois);
     if (depois > episodio + cfg.janela_dias * 24 * H) continue;
     const janela24 = h.ultUsuarioWa && depois < h.ultUsuarioWa + 23.5 * H;
     const { error } = await sb.from("followup_fila").insert({
@@ -212,7 +237,9 @@ async function disjuntor(sb: SupabaseClient, cfg: Auto): Promise<string | null> 
 }
 
 /** Runs due touches. Every lock is checked again here. */
-async function executar(sb: SupabaseClient, cfg: Auto, avisar: (assunto: string, html: string) => Promise<void>) {
+type Gerar = (leadId: string, passo: number, padrao: string) => Promise<string>;
+
+async function executar(sb: SupabaseClient, cfg: Auto, avisar: (assunto: string, html: string) => Promise<void>, gerar?: Gerar) {
   const hoje = new Date(inicioDoDiaLocal()).toISOString();
   const { count: feitosHoje } = await sb.from("followup_fila").select("id", { count: "exact", head: true })
     .in("status", ["enviado", "ensaio"]).gte("executado_em", hoje);
@@ -231,11 +258,9 @@ async function executar(sb: SupabaseClient, cfg: Auto, avisar: (assunto: string,
       res.bloqueado = (res.bloqueado ?? 0) + 1;
       continue;
     }
-    // Atrasou e saiu da faixa (relógio parado, domingo, feriado): reagenda em vez de mandar fora de hora
-    const [ini, fim] = janelaFaixa(item.faixa, noturnoDe(Date.parse(item.episodio)), cfg);
-    const l = local(agora), min = l.h * 60 + l.mi;
-    if (diaBloqueado(agora) || min < ini || min > fim + 15) {
-      const novo = proximoSlot(agora, item.faixa, noturnoDe(Date.parse(item.episodio)), cfg);
+    // Saiu do horário permitido (relógio parado, domingo, feriado, almoço): reagenda em vez de mandar fora de hora
+    if (!permitidoAgora(agora)) {
+      const novo = alvoPermitido(agora);
       await sb.from("followup_fila").update({ agendado_para: new Date(novo).toISOString() }).eq("id", item.id);
       res.reagendado = (res.reagendado ?? 0) + 1;
       continue;
@@ -263,6 +288,11 @@ async function executar(sb: SupabaseClient, cfg: Auto, avisar: (assunto: string,
     const { data: pego } = await sb.from("followup_fila").update({ status: "enviado", modo: cfg.modo, forma, template: forma === "template" ? tpl : null, executado_em: new Date().toISOString() })
       .eq("id", item.id).eq("status", "pendente").select("id");
     if (!pego?.length) continue;
+    // Inside the 24h window the Lu writes the touch from the real conversation
+    if (forma === "texto" && gerar) {
+      const t = await gerar(item.lead_id, item.passo, item.texto);
+      if (t && t !== item.texto) { item.texto = t; await sb.from("followup_fila").update({ texto: t }).eq("id", item.id); }
+    }
     const r = forma === "texto"
       ? await enviarTexto(lead!.whatsapp, item.texto)
       : await enviarTemplate(lead!.whatsapp, tpl, cfg.idioma || "pt_BR",
@@ -292,13 +322,13 @@ async function desligar(sb: SupabaseClient, motivo: string, avisar: (assunto: st
   await avisar("Follow-up automático desligado", `<p>O disjuntor desligou os follow-ups: <b>${motivo}</b>.</p><p>Nada mais será enviado até você religar na aba WhatsApp do admin.</p>`);
 }
 
-export async function tick(sb: SupabaseClient, avisar: (assunto: string, html: string) => Promise<void>) {
+export async function tick(sb: SupabaseClient, avisar: (assunto: string, html: string) => Promise<void>, gerar?: Gerar) {
   const { data } = await sb.from("config").select("valor").eq("chave", "automacao").maybeSingle();
   const cfg: Auto = { ...AUTO_PADRAO, ...(data?.valor ?? {}) };
   if (!cfg.ativo) return { ativo: false };
   const d = await disjuntor(sb, cfg);
   if (d) { await desligar(sb, d, avisar); return { ativo: false, disjuntor: d }; }
   const planejados = await planejar(sb, cfg);
-  const executados = await executar(sb, cfg, avisar);
+  const executados = await executar(sb, cfg, avisar, gerar);
   return { ativo: true, modo: cfg.modo, planejados, executados };
 }

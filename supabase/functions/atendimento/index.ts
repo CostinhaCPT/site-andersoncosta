@@ -359,7 +359,7 @@ const FERRAMENTAS = [
   },
   {
     name: "buscar_conhecimento",
-    description: "Consulta a base de conhecimento do Anderson: método, custos de compra, ITBI, financiamento, FGTS, documentos, permuta, visitas, horários, regiões e sobre o Anderson.",
+    description: "Consulta a base de conhecimento do Anderson: método, financiamento, FGTS, documentos, permuta, bairros, regiões e sobre o Anderson.",
     input_schema: { type: "object", properties: { pergunta: { type: "string" } }, required: ["pergunta"] },
   },
   {
@@ -369,7 +369,7 @@ const FERRAMENTAS = [
       type: "object",
       properties: {
         nome: { type: "string" }, whatsapp: { type: "string" }, email: { type: "string" },
-        objetivo: { type: "string", description: "morar ou investir" },
+        objetivo: { type: "string", description: "morar, investir, vender ou alugar" },
         regioes: { type: "array", items: { type: "string" } },
         perfil: { type: "string", description: "quem vai morar, quartos, o que não pode faltar" },
         prazo: { type: "string" }, motivacao: { type: "string" },
@@ -389,35 +389,13 @@ const FERRAMENTAS = [
     },
   },
   {
-    name: "oferecer_visita",
-    description: "Quando a pessoa quiser visitar um imóvel: escolhe 3 horários livres na agenda do Anderson e mostra como botões no chat. Antes, garanta que você já tem o nome e o WhatsApp da pessoa.",
-    input_schema: {
-      type: "object",
-      properties: { imovel_codigo: { type: "string", description: "Código do imóvel, como AC-0019, se for um imóvel específico" } },
-    },
-  },
-  {
-    name: "verificar_horario",
-    description: "Quando nenhum dos 3 horários serviu e a pessoa disse o dia e o horário ou período que prefere: confere na agenda e mostra as opções possíveis como botões.",
-    input_schema: {
-      type: "object",
-      properties: {
-        data: { type: "string", description: "Data no formato AAAA-MM-DD, calculada a partir da data de hoje do contexto" },
-        hora: { type: "string", description: "Horário exato HH:MM, se a pessoa disse um" },
-        periodo: { type: "string", enum: ["manha", "tarde", "noite"], description: "Se a pessoa disse só o período" },
-        imovel_codigo: { type: "string" },
-      },
-      required: ["data"],
-    },
-  },
-  {
     name: "passar_para_anderson",
     description: "Passa a conversa para o Anderson: envia o resumo por e-mail para ele e mostra à pessoa o botão de WhatsApp com a mensagem pronta.",
     input_schema: {
       type: "object",
       properties: {
-        motivo: { type: "string", description: "visita, negociação, pediu para falar com ele, lead qualificado, irritação ou outro" },
-        resumo: { type: "string", description: "Resumo para o Anderson: nome, objetivo, região, perfil da família, prazo e motivação, faixa, pagamento, imóveis de interesse, objeções, pontuação e próximo passo sugerido" },
+        motivo: { type: "string", description: "conversa marcada, visita, negociação, vendedor, investidor, pediu para falar com ele, lead qualificado, irritação ou outro" },
+        resumo: { type: "string", description: "Resumo para o Anderson: nome, tipo de lead, objetivo, região, quem vai morar, prazo e motivação nas palavras da pessoa, faixa, pagamento, imóveis de interesse, objeções, formato e horário de conversa combinados, pontuação e a primeira frase sugerida para ele abrir a conversa" },
         mensagem_whatsapp: { type: "string", description: "Mensagem em primeira pessoa, como se fosse a própria pessoa escrevendo ao Anderson, até 4 linhas" },
         pontuacao: { type: "string", enum: ["A", "B", "C", "D"] },
       },
@@ -899,9 +877,9 @@ const PROMPT_WHATS = `
 - Mensagens que vêm do botão do site terminam com "Código: XXXX". É só um código interno de rastreio: nunca comente nem repita. Se a mensagem citar um imóvel (ref. DM-123 ou o título), comece falando dele.
 - Escreva no máximo 3 mensagens curtas por resposta. Nada de títulos com # nem tabelas. Use *negrito* só se ajudar muito.
 - Ao indicar imóvel, coloque o link completo em linha própria. O WhatsApp mostra a prévia com a foto.
-- oferecer_visita e verificar_horario mostram uma lista tocável. Diga que é só tocar em "Ver horários" logo abaixo e escolher.
-- passar_para_anderson: diga que o Anderson vai continuar a conversa pessoalmente aqui mesmo, neste número, e quando ele deve responder se for fora do horário. Não fale em botão nem em link. O campo mensagem_whatsapp pode ser um resumo de uma linha.
-- Se a pessoa pedir para não receber mais mensagens, registre com nao_contatar e confirme em uma frase, com respeito, que ela não vai mais receber mensagens automáticas.`;
+- Os horários de conversa vão escritos na mensagem, dois por vez, tirados da lista "Horários livres do Anderson para conversa".
+- passar_para_anderson: diga que o Anderson continua com a pessoa aqui mesmo, neste número, ou na ligação combinada. Não fale em botão nem em link. O campo mensagem_whatsapp pode ser um resumo de uma linha.
+- Se a pessoa pedir para não receber mais mensagens, chame registrar_lead com nao_contatar true na mesma resposta e confirme em uma frase, com respeito, que ela não vai mais receber mensagens.`;
 
 type ConfigWa = { ativo: boolean; modo_teste: boolean; numeros_teste: string[] };
 async function configWa(): Promise<ConfigWa> {
@@ -1125,6 +1103,45 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
   await contarSaida(lead!.id, enviados);
 }
 
+// Free slots in Anderson's calendar, given to the model as text so it can offer two of them for a call.
+async function horariosConversa(a: Agenda) {
+  try {
+    const livres = sugerirTres(a, await ocupados(a)).filter((o) => o.tipo === "livre").map((o) => o.rotulo);
+    return livres.length ? `\n\n## Horários livres do Anderson para conversa\n\n${livres.join("; ")}. Ofereça dois destes. Se nenhum servir, pergunte o melhor dia e período e diga que o Anderson confirma.` : "";
+  } catch (e) { console.error("horarios conversa", e); return ""; }
+}
+
+// Writes a follow-up touch in the Lu's voice from the real conversation. Falls back to the fixed text on any problem.
+async function gerarRetomada(leadId: string, passo: number, padrao: string): Promise<string> {
+  try {
+    const { data: convs } = await sb.from("conversas").select("id, contexto").eq("lead_id", leadId).eq("canal", "whatsapp")
+      .order("atualizado_em", { ascending: false }).limit(1);
+    const conv = convs?.[0];
+    if (!conv) return padrao;
+    const { data: hist } = await sb.from("mensagens").select("papel, conteudo").eq("conversa_id", conv.id)
+      .in("papel", ["usuario", "assistente"]).order("criado_em", { ascending: true }).limit(40);
+    const { data: l } = await sb.from("leads").select(CAMPOS_LEAD.join(",")).eq("id", leadId).maybeSingle();
+    const leadTxt = JSON.stringify(Object.fromEntries(Object.entries(l ?? {}).filter(([, v]) => v != null && !(Array.isArray(v) && !v.length))));
+    const passoTxt = passo === 1
+      ? "toque 1, no mesmo dia: continue o fio de onde parou, entregue a próxima informação que ela ia querer e termine com uma pergunta de uma palavra (ou nenhuma, se a sua última mensagem já terminou numa pergunta)"
+      : passo === 2
+        ? "toque 2, no dia seguinte: traga uma novidade que ela ainda não tinha (comparação com o bairro, um imóvel do cadastro que combina com o que ela contou, ou o que o imóvel tem que a foto não mostra)"
+        : "toque 3: a pergunta que permite dizer não, com as palavras desta conversa (o imóvel, o nome, o que ela contou), deixando claro que um não basta";
+    const system = PROMPT.replaceAll("{canal}", "WhatsApp").replaceAll("{pagina}", "conversa pelo WhatsApp")
+      .replaceAll("{imovel_contexto}", await contextoImovel(conv.contexto?.imovel)).replaceAll("{utm}", "{}")
+      .replaceAll("{agora}", agoraBR()).replaceAll("{lead}", leadTxt).replaceAll("{saudacao}", "")
+      + `\n\n## Agora: retomada\n\nA pessoa parou de responder, provavelmente porque a vida interrompeu. Escreva só o ${passoTxt}. Uma ou duas frases, sem se apresentar de novo, sem "ficou alguma dúvida", sem "lembrete", sem cobrar resposta e sem falar de imposto. Não use ferramentas. Responda apenas com o texto exato da mensagem.`;
+    const messages = montarHistorico(hist ?? []);
+    if (!messages.length) return padrao;
+    if (messages[messages.length - 1].role === "assistant") messages.push({ role: "user", content: "(a pessoa ainda não respondeu)" });
+    const resp = await claude(system, messages);
+    const texto = (resp.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n\n")
+      .replace(/\s*—\s*/g, ", ").trim();
+    if (!texto || texto.length > 700 || /ficou alguma d[uú]vida|assistente virtual|ITBI/i.test(texto)) return padrao;
+    return texto;
+  } catch (e) { console.error("gerar retomada", e); return padrao; }
+}
+
 // ------------------------------------------------------------ um turno da IA
 /** Runs the model with tools on the conversation history and stores the reply. Shared by site and WhatsApp. */
 async function turno(
@@ -1167,6 +1184,7 @@ async function turno(
     .replaceAll("{lead}", leadTxt)
     .replaceAll("{saudacao}", String(cfg.chat.saudacao || (ctxIn.saudacao ?? "Oi! Aqui é a Lu, do time do Anderson Costa. Me conta o que você está procurando que eu te ajudo a encontrar.")).replace(/["{}]/g, "").slice(0, 250))
     + (ctx.canal === "whatsapp" ? PROMPT_WHATS.replace("{anuncio_contexto}", anuncio.texto || "nenhum") : "")
+    + await horariosConversa(cfg.agenda)
     + (ctxIn.voz && ctx.canal === "whatsapp" ? `\n\n## Resposta em áudio\n\nA pessoa mandou áudio, provavelmente está dirigindo ou sem poder ler. Sua resposta vai virar uma mensagem de voz, então escreva exatamente como uma pessoa fala num áudio de WhatsApp, não como texto lido. Regras: comece com uma reação curta e natural ("Oi! Olha, separei duas opções pra você." ou "Tenho sim, olha só."), e se for a sua primeira resposta na conversa diga logo no começo que é a Lu, do time do Anderson; use linguagem falada do dia a dia (pra, tá, olha, então), frases curtas, sem listas, sem "a primeira é... a segunda é..."; fale no máximo de dois imóveis, só o essencial de cada um (bairro, tipo, quartos e preço arredondado, como "uns novecentos e cinquenta mil"), sem metragem detalhada; um ponto de atenção só se for importante; uns 20 a 30 segundos de fala (no máximo 60 palavras); sem emoji e sem códigos de referência. Pode colocar os links no fim, eles vão por escrito e não serão lidos. Termine com uma pergunta simples que dê para responder por áudio.` : "")
     + (extras ? `\n\n## Orientações extras do Anderson\n\nSiga estas orientações dele, desde que não contrariem as regras acima (honestidade, não inventar, nunca afirmar ser humana, sem travessão):\n${extras}` : "");
 
@@ -1252,7 +1270,7 @@ Deno.serve(async (req) => {
     if (body.acao === "followup_tick") {
       const { data: t } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
       if (!t?.valor?.token || t.valor.token !== body.token) return json({ erro: "negado" }, 403, origin);
-      return json(await followupTick(sb, avisarAnderson), 200, origin);
+      return json(await followupTick(sb, avisarAnderson, gerarRetomada), 200, origin);
     }
     if (body.acao === "simular") {
       // Runs a scripted WhatsApp conversation through the real assistant, sends nothing, and deletes every trace.
