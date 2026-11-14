@@ -451,3 +451,24 @@ p { margin: 0 0 1em; }
 /* Alvos de toque de pelo menos 44 px */
 .rodape a { padding: 6px 0; margin: 2px 0; }
 .burger { min-width: 44px; min-height: 44px; }
+
+/* Botão de WhatsApp sempre visível + chamada contextual ----------------- */
+:root { --wb: 18px; }
+.whats-fixo { bottom: var(--wb); transition: bottom .25s ease, transform .15s ease; }
+.whats-fixo:hover { transform: scale(1.05); }
+@media (max-width: 700px) { body:has(.cookie) { --wb: 88px; } }
+.whats-convite { position: fixed; right: 18px; bottom: calc(var(--wb) + 72px); z-index: 85; width: min(290px, calc(100vw - 36px)); background: #fff; color: var(--texto); border: 1px solid var(--linha); border-radius: 16px 16px 4px 16px; padding: 14px 36px 14px 16px; box-shadow: 0 14px 36px rgba(0,0,0,.18); cursor: pointer; display: grid; gap: 4px; font-size: .93rem; line-height: 1.45; animation: whatsEntra .4s cubic-bezier(.2,.8,.2,1); transition: bottom .25s ease; }
+.whats-convite:focus-visible { outline: 2px solid var(--whats); outline-offset: 2px; }
+.whats-convite-quem { display: flex; align-items: center; gap: 6px; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: #6b6b66; }
+.whats-convite-quem i { width: 8px; height: 8px; border-radius: 50%; background: var(--whats); box-shadow: 0 0 0 3px rgba(21,128,61,.18); }
+.whats-convite-cta { font-weight: 600; color: var(--whats); font-size: .88rem; margin-top: 2px; }
+.whats-convite-x { position: absolute; top: 6px; right: 8px; width: 32px; height: 32px; background: none; border: 0; font-size: 1.3rem; line-height: 1; color: #888; cursor: pointer; border-radius: 50%; }
+.whats-convite-x:hover { background: var(--papel); }
+@keyframes whatsEntra { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .whats-convite, .whats-fixo { animation: none; transition: none; } }
+/* Na ficha do imóvel no celular, a barra fixa já é o botão de WhatsApp: a chamada aparece logo acima dela */
+@media (max-width: 960px) {
+  body:has(.barra-mobile) .whats-convite { bottom: 84px; }
+  body:has(.barra-mobile):has(.cookie) .whats-convite { bottom: 160px; }
+}
+@media (max-width: 520px) { .whats-convite { width: min(262px, calc(100vw - 32px)); right: 16px; padding: 12px 34px 12px 14px; font-size: .88rem; } }
