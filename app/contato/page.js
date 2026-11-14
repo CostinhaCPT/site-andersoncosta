@@ -1,7 +1,7 @@
 import FormLead from '@/components/FormLead';
 import { BotaoWhats } from '@/components/Whats';
 import { SITE } from '@/lib/site';
-export const metadata = { title: 'Contato', description: 'Fale com Anderson Costa, corretor de imóveis em Jaraguá do Sul.' , alternates: { canonical: '/contato/' } };
+export const metadata = { title: 'Contato', description: 'Fale com Anderson Costa, corretor de imóveis em Jaraguá do Sul (CRECI SC 68594): WhatsApp, e-mail e atendimento para quem quer comprar ou vender imóvel na região.' , alternates: { canonical: '/contato/' } };
 export default function P() {
   return (
     <section className="sec cinza-bg"><div className="wrap duas-col" style={{ alignItems: 'start' }}>

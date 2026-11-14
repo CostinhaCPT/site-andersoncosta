@@ -10,13 +10,18 @@ import ContarVisita from '@/components/ContarVisita';
 export function generateStaticParams() { return imoveis.map((i) => ({ slug: i.slug })); }
 export async function generateMetadata({ params }) {
   const i = porSlug((await params).slug);
-  return { title: i.titulo, description: `${i.resumo} ${i.precoVisivel && i.preco ? brl(i.preco) : 'Preço sob consulta'}. ${i.bairro}, ${i.cidade}.`, alternates: { canonical: `/imovel/${i.slug}/` }, openGraph: { images: [miniatura(i.fotos[0])] } };
+  const desc = `${i.resumo} ${i.precoVisivel && i.preco ? brl(i.preco) : 'Preço sob consulta'}. ${i.bairro}, ${i.cidade}. Com o preço do m² comparado ao bairro e o que merece atenção.`;
+  // Prévia do WhatsApp: JPG 1200x630 gerado no build para fotos próprias; as dos parceiros já são JPG
+  const f = i.fotos[0] || '';
+  const og = f.startsWith('/') ? { url: `/og/${i.codigo.toLowerCase()}.jpg`, width: 1200, height: 630 } : { url: f };
+  return { title: i.titulo, description: desc.length > 165 ? desc.slice(0, 162).replace(/\s+\S*$/, '') + '...' : desc, alternates: { canonical: `/imovel/${i.slug}/` }, openGraph: { type: 'website', title: i.titulo, images: [{ ...og, alt: i.titulo }] } };
 }
 export default async function Pagina({ params }) {
   const i = porSlug((await params).slug);
   const msg = `Olá, Anderson! Vi o imóvel "${i.titulo}" (ref. ${i.codigo}) no site e quero saber mais.`;
   const ld = { '@context': 'https://schema.org', '@type': 'RealEstateListing', name: i.titulo, description: i.resumo, url: `${SITE.dominio}/imovel/${i.slug}/`, image: i.fotos.slice(0, 6).map((f) => (/^https?:/.test(f) ? f : SITE.dominio + f)),
     offers: { '@type': 'Offer', ...(i.precoVisivel && i.preco ? { price: i.preco, priceCurrency: 'BRL' } : {}), availability: i.reservado ? 'https://schema.org/LimitedAvailability' : 'https://schema.org/InStock', seller: { '@type': 'RealEstateAgent', name: SITE.marca, telephone: '+' + SITE.whatsapp, url: SITE.dominio } },
+    ...(i.criadoEm ? { datePosted: String(i.criadoEm).slice(0, 10) } : {}),
     mainEntity: { '@type': i.tipoSlug === 'apartamento' ? 'Apartment' : 'SingleFamilyResidence', numberOfBedrooms: i.quartos, numberOfBathroomsTotal: i.banheiros, ...(i.area ? { floorSize: { '@type': 'QuantitativeValue', value: i.area, unitCode: 'MTK' } } : {}), address: { '@type': 'PostalAddress', addressLocality: i.cidade, addressRegion: 'SC', addressCountry: 'BR' } } };
   const dif = i.precoM2 && i.refM2 && i.refAmostra ? Math.round(((i.precoM2 - i.refM2) / i.refM2) * 100) : 0;
   const bom = [...i.destaques, ...(dif <= -5 ? [`Preço ${Math.abs(dif)}% abaixo da mediana do m² do bairro`] : [])];
@@ -24,6 +29,11 @@ export default async function Pagina({ params }) {
   return (
     <div className="pagina-imovel" data-codigo={i.codigo}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Imóveis', item: `${SITE.dominio}/imoveis/` },
+        { '@type': 'ListItem', position: 2, name: i.bairro, item: `${SITE.dominio}/imoveis/${i.cidadeSlug}/${i.bairroSlug}/` },
+        { '@type': 'ListItem', position: 3, name: i.titulo, item: `${SITE.dominio}/imovel/${i.slug}/` },
+      ] }) }} />
       <ContarVisita codigo={i.codigo} titulo={i.titulo} valor={i.precoVisivel && i.preco ? i.preco : null} perfil={{ bairro: i.bairroSlug, tipo: i.tipoSlug, preco: i.preco }} />
       <div className="wrap">
         <div className="migalha"><Link href="/imoveis/">Imóveis</Link> / <Link href={`/imoveis/${i.cidadeSlug}/${i.bairroSlug}/`}>{i.bairro}</Link> / {i.codigo}</div>
