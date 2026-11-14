@@ -7,7 +7,7 @@ export default function Rodape() {
       <div className="wrap">
         <div className="cols">
           <div>
-            <img src="/marca/anderson-costa-horizontal-branco.svg" alt="Anderson Costa" style={{ height: 22, marginBottom: 18 }} />
+            <img src="/marca/anderson-costa-horizontal-branco.svg" alt="Anderson Costa" width="306" height="22" style={{ height: 22, width: 'auto', marginBottom: 18 }} loading="lazy" />
             <p style={{ maxWidth: 360 }}>{SITE.frase}</p>
             <p><b style={{ color: '#fff' }}>{SITE.creci}</b><br />Jaraguá do Sul, Santa Catarina</p>
           </div>

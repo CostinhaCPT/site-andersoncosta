@@ -141,7 +141,7 @@ function Bloco({ b, lp, imoveis, nome, previa, aoEvento }) {
             <h2>{d.titulo || 'Como eu trabalho'}</h2>
             <div className="passos">
               <div className="passo"><span className="n">01 · CURADORIA</span><h3>Os 3 que fazem sentido</h3><p>Entendo a rotina da família antes de mostrar qualquer imóvel e seleciono só o que atende, incluindo opções fora do site.</p></div>
-              <div className="passo"><span className="n">02 · ANÁLISE DE COMPRA</span><h3>Os números na mesa</h3><p>Preço por m² comparado ao bairro, custo total com ITBI de 2%, escritura e registro, e simulação de financiamento.</p></div>
+              <div className="passo"><span className="n">02 · ANÁLISE DE COMPRA</span><h3>Os números na mesa</h3><p>Preço por m² comparado ao bairro, simulação de financiamento e checklist de documentos.</p></div>
               <div className="passo"><span className="n">03 · VÍDEO HONESTO</span><h3>O que é bom e o que pesa</h3><p>Um tour mostrando os pontos fortes e os pontos de atenção, para você chegar na visita sabendo o que olhar.</p></div>
             </div>
           </div>

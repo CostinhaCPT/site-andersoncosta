@@ -15,7 +15,7 @@
   --linha: #e4e4e2;
   --texto: #070707;
   --texto-2: #55554f;
-  --whats: #1f9d55;
+  --whats: #15803d;
   --raio: 10px;
   --max: 1180px;
   --titulo: 'Syncopate', 'Metropolis', sans-serif;
@@ -385,7 +385,7 @@ p { margin: 0 0 1em; }
 /* simulação: 4 campos */
 .sim { grid-template-columns: repeat(4, 1fr); }
 .sim select { padding: 10px; border: 1px solid #d4d4d0; border-radius: 8px; font: inherit; width: 100%; background: #fff; }
-.sim .opc { color: #999; font-size: .7rem; }
+.sim .opc { color: #6b6b66; font-size: .7rem; }
 @media (max-width: 860px) { .sim { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 420px) { .sim { grid-template-columns: 1fr; } }
 .nota.aviso { background: #fff7e6; border-left: 3px solid #d89b00; padding: 8px 12px; border-radius: 4px; color: #6b4e00; }
@@ -432,3 +432,43 @@ p { margin: 0 0 1em; }
 .vitrine-abas .vitrine-outros { border: 0; background: none; text-decoration: underline; color: var(--cinza); margin-left: auto; }
 .vitrine-nota { font-size: .85rem; margin: 10px 0 0; }
 @media (max-width: 620px) { .vitrine-abas { flex-wrap: nowrap; overflow-x: auto; margin-right: -20px; padding-bottom: 4px; } .vitrine-abas button { flex: none; } .vitrine-abas .vitrine-outros { margin-left: 0; } }
+
+/* Onda 1 (14/11/2026) ---------------------------------------------------- */
+/* Fotos do carrossel que ainda não foram vistas: espaço reservado, sem download */
+.fotos-trilho .foto-depois { flex: 0 0 100%; width: 100%; height: 100%; background: #e9e9e7; scroll-snap-align: start; }
+/* Títulos pequenos do rodapé: contraste AA sobre o preto */
+.rodape .eyebrow { color: #a3a39e; }
+/* Aviso de cookies: faixa compacta no celular, acima da barra do imóvel quando ela existe */
+@media (max-width: 960px) { .cookie { bottom: 12px; } body:has(.barra-mobile) .cookie { bottom: 84px; } }
+@media (max-width: 700px) {
+  .cookie { left: 8px; right: 8px; padding: 10px 12px; font-size: .8rem; line-height: 1.4; display: flex; align-items: center; gap: 10px; }
+  .cookie > span { flex: 1; }
+  .cookie .acoes { margin-top: 0; flex-wrap: nowrap; gap: 6px; }
+  .cookie .btn { padding: 9px 12px; min-height: 40px; font-size: .78rem; }
+}
+/* Página do imóvel no celular: um só caminho de contato (a barra fixa), sem o lançador do chat por cima */
+@media (max-width: 960px) { body:has(.barra-mobile) .whats-fixo, body:has(.barra-mobile) .chat-lancador, body:has(.barra-mobile) .chat-convite { display: none; } }
+/* Alvos de toque de pelo menos 44 px */
+.rodape a { padding: 6px 0; margin: 2px 0; }
+.burger { min-width: 44px; min-height: 44px; }
+
+/* Botão de WhatsApp sempre visível + chamada contextual ----------------- */
+:root { --wb: 18px; }
+.whats-fixo { bottom: var(--wb); transition: bottom .25s ease, transform .15s ease; }
+.whats-fixo:hover { transform: scale(1.05); }
+@media (max-width: 700px) { body:has(.cookie) { --wb: 88px; } }
+.whats-convite { position: fixed; right: 18px; bottom: calc(var(--wb) + 72px); z-index: 85; width: min(290px, calc(100vw - 36px)); background: #fff; color: var(--texto); border: 1px solid var(--linha); border-radius: 16px 16px 4px 16px; padding: 14px 36px 14px 16px; box-shadow: 0 14px 36px rgba(0,0,0,.18); cursor: pointer; display: grid; gap: 4px; font-size: .93rem; line-height: 1.45; animation: whatsEntra .4s cubic-bezier(.2,.8,.2,1); transition: bottom .25s ease; }
+.whats-convite:focus-visible { outline: 2px solid var(--whats); outline-offset: 2px; }
+.whats-convite-quem { display: flex; align-items: center; gap: 6px; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: #6b6b66; }
+.whats-convite-quem i { width: 8px; height: 8px; border-radius: 50%; background: var(--whats); box-shadow: 0 0 0 3px rgba(21,128,61,.18); }
+.whats-convite-cta { font-weight: 600; color: var(--whats); font-size: .88rem; margin-top: 2px; }
+.whats-convite-x { position: absolute; top: 6px; right: 8px; width: 32px; height: 32px; background: none; border: 0; font-size: 1.3rem; line-height: 1; color: #888; cursor: pointer; border-radius: 50%; }
+.whats-convite-x:hover { background: var(--papel); }
+@keyframes whatsEntra { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .whats-convite, .whats-fixo { animation: none; transition: none; } }
+/* Na ficha do imóvel no celular, a barra fixa já é o botão de WhatsApp: a chamada aparece logo acima dela */
+@media (max-width: 960px) {
+  body:has(.barra-mobile) .whats-convite { bottom: 84px; }
+  body:has(.barra-mobile):has(.cookie) .whats-convite { bottom: 160px; }
+}
+@media (max-width: 520px) { .whats-convite { width: min(262px, calc(100vw - 32px)); right: 16px; padding: 12px 34px 12px 14px; font-size: .88rem; } }

@@ -18,7 +18,7 @@ export default function P() {
       <h2>Três compromissos com quem compra comigo</h2>
       <div className="passos">
         <div className="passo"><span className="n">01</span><h3>Falo do ponto fraco antes de você descobrir</h3><p>Cada imóvel que eu apresento vem com o que ele tem de bom e o que merece atenção. Se um imóvel não vale o preço pedido, eu te digo.</p></div>
-        <div className="passo"><span className="n">02</span><h3>Mostro os números, não só as fotos</h3><p>Preço por m² comparado ao bairro, custo total com ITBI, escritura e registro, e simulação de financiamento antes de você decidir.</p></div>
+        <div className="passo"><span className="n">02</span><h3>Mostro os números, não só as fotos</h3><p>Preço por m² comparado ao bairro, simulação de financiamento e checklist de documentos antes de você decidir.</p></div>
         <div className="passo"><span className="n">03</span><h3>Não te apresso</h3><p>Comprar um imóvel é uma das maiores decisões da família. A decisão é sua, no seu tempo, com tudo na mesa.</p></div>
       </div>
       <p style={{ marginTop: 36 }}><Link href="/curadoria/" className="btn btn-escuro">Receba sua curadoria gratuita</Link></p>

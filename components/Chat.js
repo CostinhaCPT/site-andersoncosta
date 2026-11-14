@@ -24,11 +24,11 @@ function codigoDaPagina(p) {
 }
 
 function convitePara(p) {
-  if (codigoDaPagina(p)) return 'Quer saber quanto fica o custo total deste imóvel, com ITBI e escritura? Posso calcular para você.';
+  if (codigoDaPagina(p)) return 'Quer saber como este imóvel fica em relação ao bairro, ou o que ele tem que as fotos não mostram? Posso te ajudar.';
   if (p.startsWith('/imoveis')) return 'Não achou exatamente o que procura? Me conta o que sua família precisa que eu filtro para você.';
   if (p.startsWith('/curadoria')) return 'Se preferir, me conta aqui mesmo o que vocês procuram e eu já adianto sua curadoria.';
   if (p.startsWith('/anuncie')) return 'Pensando em vender? Posso te explicar como o Anderson avalia e divulga o imóvel.';
-  if (p.startsWith('/metodo')) return 'Ficou alguma dúvida sobre o método ou sobre os custos de compra? Pode me perguntar.';
+  if (p.startsWith('/metodo')) return 'Quer entender como funciona a curadoria ou a simulação de financiamento? Pode me perguntar.';
   return 'Oi! Está procurando imóvel em Jaraguá do Sul e região? Posso te ajudar a encontrar.';
 }
 

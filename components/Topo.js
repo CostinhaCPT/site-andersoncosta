@@ -8,7 +8,7 @@ export default function Topo() {
   return (
     <header className={'topo' + (r ? ' rolou' : '')}>
       <div className="wrap">
-        <Link href="/" className="logo" aria-label="Anderson Costa, página inicial"><img src="/marca/anderson-costa-wordmark-branco.svg" alt="Anderson Costa Negócios Imobiliários" width="1554" height="112" /><span className="logo-creci">Negócios Imobiliários · CRECI SC 68594</span></Link>
+        <Link href="/" className="logo"><img src="/marca/anderson-costa-wordmark-branco.svg" alt="Anderson Costa Negócios Imobiliários" width="1554" height="112" /><span className="logo-creci">Negócios Imobiliários · CRECI SC 68594</span></Link>
         <button className="burger" aria-label="Abrir menu" onClick={() => setA(!a)}>{a ? '×' : '≡'}</button>
         <nav className={'menu' + (a ? ' aberto' : '')} onClick={() => setA(false)}>
           <Link href="/imoveis/">Imóveis</Link>
