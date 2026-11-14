@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { miniatura } from '@/lib/format';
-export default function Galeria({ fotos, titulo }) {
+export default function Galeria({ fotos, titulo, video }) {
   const [i, setI] = useState(null);
   const [n, setN] = useState(0);
   const trilho = useRef(null);
@@ -18,12 +18,16 @@ export default function Galeria({ fotos, titulo }) {
   const fim = (e) => { if (toque.current == null) return; const d = e.changedTouches[0].clientX - toque.current; toque.current = null; if (Math.abs(d) > 40) (d < 0 ? prox : ant)(); };
   return (
     <>
-      <div className="galeria">
-        {fotos.slice(0, 3).map((f, k) => (
-          <button key={f} style={{ backgroundImage: `url(${k === 0 ? f : miniatura(f)})` }} onClick={() => setI(k)} aria-label={`Abrir foto ${k + 1} de ${titulo}`}>
-            {k === (total > 2 ? 2 : 0) && <span className="mais">Ver as {total} fotos</span>}
+      <div className={'galeria g' + Math.min(5, total)}>
+        {fotos.slice(0, 5).map((f, k) => (
+          <button key={f} type="button" onClick={() => setI(k)} aria-label={`Abrir foto ${k + 1} de ${titulo}`}>
+            <img src={k === 0 ? f : miniatura(f)} alt={k === 0 ? titulo : ''} loading={k === 0 ? 'eager' : 'lazy'} fetchPriority={k === 0 ? 'high' : undefined} decoding="async" />
           </button>
         ))}
+        <span className="galeria-acoes">
+          {video && <a href="#video" className="galeria-chip">▶ Vídeo</a>}
+          <button type="button" className="galeria-chip" onClick={() => setI(0)}>Ver as {total} fotos</button>
+        </span>
       </div>
       {/* celular: arrasta para o lado direto na página */}
       <div className="galeria-movel">
@@ -31,6 +35,7 @@ export default function Galeria({ fotos, titulo }) {
           {fotos.map((f, k) => <img key={f} src={k < 2 ? f : miniatura(f)} alt={`${titulo}, foto ${k + 1}`} loading={k === 0 ? 'eager' : 'lazy'} decoding="async" onClick={() => setI(k)} />)}
         </div>
         <span className="cont-movel">{n + 1} / {total}</span>
+        {video && <a href="#video" className="galeria-chip galeria-chip-movel">▶ Vídeo</a>}
       </div>
       {i !== null && (
         <div className="lightbox" onClick={() => setI(null)} onTouchStart={ini} onTouchEnd={fim}>
