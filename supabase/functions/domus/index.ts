@@ -15,7 +15,10 @@ const slugify = (s: string) => String(s || "").normalize("NFD").replace(/[̀-ͯ]
 const numero = (s: unknown) => {
   if (s === null || s === undefined || s === "") return null;
   if (typeof s === "number") return s;
-  const t = String(s).replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  // "1.234,56" (vírgula decimal), "1.234.567" (só milhar) ou "170.61" (ponto decimal, como a Domus manda as áreas)
+  let t = String(s).replace(/[^\d,.-]/g, "");
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
   const n = Number(t);
   return Number.isFinite(n) && n > 0 ? n : null;
 };
@@ -63,8 +66,9 @@ function mapear(d: any) {
     preco: numero(d.price),
     area, terreno, quartos, suites, banheiros, vagas,
     condominio: numero(d.condominium_price),
-    aceita_permuta: !!d.is_exchangeable,
-    aceita_financiamento: !!d.is_financeable,
+    // A Domus só marca quando aceita; ausência é "não informado" (null), nunca "não aceita"
+    aceita_permuta: d.is_exchangeable ? true : null,
+    aceita_financiamento: d.is_financeable ? true : null,
     destaques,
     visita_exige_proprietario: true, // imóvel de parceiro: a visita sempre é combinada antes
     campos: {
@@ -176,7 +180,7 @@ async function redigir(qtd = 6, minimo = 0) {
   const feitos: string[] = [], falhas: string[] = [];
   await Promise.all((lista ?? []).map(async (im: any) => {
     const ficha = { tipo: im.tipo, bairro: im.bairro, cidade: im.cidade, area_m2: im.area, terreno_m2: im.terreno, quartos: im.quartos, suites: im.suites, banheiros: im.banheiros, vagas: im.vagas,
-      condominio: im.condominio, financiamento: im.aceita_financiamento, permuta: im.aceita_permuta, caracteristicas: (im.destaques ?? []).join("; "), situacao: im.campos?.situacao, sol: im.campos?.sol };
+      condominio: im.condominio, financiamento: im.aceita_financiamento ? "aceita" : "não informado no anúncio (não diga que não aceita)", permuta: im.aceita_permuta ? "aceita" : "não informado no anúncio (não diga que não aceita)", caracteristicas: (im.destaques ?? []).join("; "), situacao: im.campos?.situacao, sol: im.campos?.sol };
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST", headers: { "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({ model: await modelo(), max_tokens: 1500, system: REGRAS + "\n\nResponda somente chamando a ferramenta textos_imovel.", tools: [FERRAMENTA], tool_choice: { type: "auto" },

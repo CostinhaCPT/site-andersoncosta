@@ -784,3 +784,11 @@ h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -.005em; }
   .h-hero-foto:hover img { transform: scale(1.02); }
   .galeria button:hover img { transform: scale(1.03); }
 }
+.comp-veredito { font-weight: 600; font-size: 1.05rem; margin: 6px 0 10px; }
+.comp-motivos { background: #fff; border: 1px solid var(--borda); border-radius: var(--raio); padding: 16px 20px; margin: 12px 0; }
+.comp-motivos b { font-weight: 600; }
+.comp-motivos ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 6px; color: var(--texto-3); }
+.comp-lista { margin: 12px 0; }
+.comp-lista summary { cursor: pointer; font-weight: 600; font-size: .95rem; padding: 8px 0; }
+.comp-lista ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: .92rem; }
+.comp-lista ul span { color: var(--texto-2); }
