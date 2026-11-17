@@ -69,11 +69,11 @@ p { margin: 0 0 1em; }
 }
 
 /* hero */
-.hero { position: relative; overflow: hidden; padding: 120px 0 108px; background-color: #0b0b0b; background-image: linear-gradient(90deg, rgba(7,7,7,.92) 0%, rgba(7,7,7,.7) 38%, rgba(7,7,7,.15) 62%, rgba(7,7,7,0) 80%), url(/img/hero-textura.webp); background-size: cover; background-position: center; }
+.hero { position: relative; overflow: hidden; padding: 120px 0 108px; background-color: #0b0b0b; background-image: linear-gradient(90deg, rgba(7,7,7,.92) 0%, rgba(7,7,7,.7) 38%, rgba(7,7,7,.15) 62%, rgba(7,7,7,0) 80%), url(/img/hero-relevo.webp); background-size: cover; background-position: center; }
 .hero h1 { max-width: 15em; }
 .hero p.lead { font-size: 1.12rem; max-width: 34em; color: #d6d6d6; }
 .hero .acoes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
-@media (max-width: 700px) { .hero { padding: 56px 0 250px; background-image: linear-gradient(180deg, rgba(7,7,7,.92) 0%, rgba(7,7,7,.8) 50%, rgba(7,7,7,.05) 78%), url(/img/hero-textura-mobile.webp); background-position: center bottom; background-size: cover; background-repeat: no-repeat; } }
+@media (max-width: 700px) { .hero { padding: 56px 0 250px; background-image: linear-gradient(180deg, rgba(7,7,7,.92) 0%, rgba(7,7,7,.8) 50%, rgba(7,7,7,.05) 78%), url(/img/hero-relevo-mobile.webp); background-position: center bottom; background-size: cover; background-repeat: no-repeat; } }
 
 /* metodo */
 .passos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 32px; }
@@ -360,7 +360,7 @@ p { margin: 0 0 1em; }
 }
 /* hero mobile: sem o vão grande; símbolo em relevo vira fundo discreto atrás dos botões */
 @media (max-width: 700px) {
-  .hero { padding: 48px 0 64px; background-image: linear-gradient(180deg, rgba(7,7,7,.94) 0%, rgba(7,7,7,.86) 55%, rgba(7,7,7,.55) 100%), url(/img/hero-textura-mobile.webp); background-position: center bottom; background-size: cover; }
+  .hero { padding: 48px 0 64px; background-image: linear-gradient(180deg, rgba(7,7,7,.94) 0%, rgba(7,7,7,.86) 55%, rgba(7,7,7,.55) 100%), url(/img/hero-relevo-mobile.webp); background-position: center bottom; background-size: cover; }
   .hero .acoes { margin-top: 24px; }
   .hero .acoes .btn { flex: 1 1 100%; text-align: center; justify-content: center; }
 }
