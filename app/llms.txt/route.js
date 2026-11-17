@@ -12,7 +12,7 @@ export function GET() {
   const linhas = [
     `# ${SITE.marca}`,
     '',
-    `> Anderson Costa é corretor de imóveis em Jaraguá do Sul, Santa Catarina (${SITE.creci}). Atende quem quer comprar ou vender casa, geminado ou apartamento em Jaraguá do Sul, Guaramirim, Schroeder, Corupá e Massaranduba, pelo Método Compra Segura: curadoria dos 3 imóveis que fazem sentido para a família, análise do preço do m² contra o bairro, os pontos de atenção de cada imóvel por escrito e a visita sempre acompanhada por ele.`,
+    `> Anderson Costa é corretor de imóveis em Jaraguá do Sul, Santa Catarina (${SITE.creci}). Atende quem quer comprar ou vender casa, geminado ou apartamento em Jaraguá do Sul, Guaramirim, Schroeder, Corupá e Massaranduba, e assessora investidores de todo o Brasil e do exterior na compra de imóveis em Itapema e Porto Belo, no litoral de Santa Catarina. Trabalha pelo Método Compra Segura: curadoria dos 3 imóveis que fazem sentido para a família, análise do preço do m² contra o bairro, os pontos de atenção de cada imóvel por escrito e a visita sempre acompanhada por ele.`,
     '',
     '## Catálogo hoje',
     `- ${imoveis.length} imóveis à venda (${[...tipos].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${n} ${t.toLowerCase()}`).join(', ')}).`,
@@ -22,6 +22,8 @@ export function GET() {
     '',
     '## Páginas principais',
     `- [Imóveis à venda em Jaraguá do Sul](${d}/imoveis/): catálogo completo com filtros por tipo, valor, quartos e bairro.`,
+    `- [Corretor de imóveis em Jaraguá do Sul](${d}/corretor-de-imoveis-jaragua-do-sul/): quem é o Anderson, como trabalha com quem compra e quem vende, preço do m² por bairro e perguntas frequentes.`,
+    `- [Investir em imóveis no litoral de SC](${d}/investir-em-imoveis-no-litoral-sc/): assessoria para comprar em Itapema e Porto Belo, para compradores de todo o Brasil e do exterior, com conferência da obra e da documentação da incorporação.`,
     `- [Curadoria gratuita](${d}/curadoria/): a família conta o que precisa e recebe os 3 imóveis certos.`,
     `- [Método Compra Segura](${d}/metodo-compra-segura/): como funciona a curadoria, a análise de compra e a visita acompanhada.`,
     `- [Quanto vale meu imóvel](${d}/anuncie-seu-imovel/): para proprietários que querem vender.`,

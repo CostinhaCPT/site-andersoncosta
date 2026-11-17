@@ -20,6 +20,8 @@ export default function Rodape() {
             <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.telefoneVisivel}</a>
             <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
             <Link href="/curadoria/">Curadoria gratuita</Link>
+            <Link href="/corretor-de-imoveis-jaragua-do-sul/">Corretor de imóveis em Jaraguá do Sul</Link>
+            <Link href="/investir-em-imoveis-no-litoral-sc/">Investir no litoral de SC</Link>
             <Link href="/anuncie-seu-imovel/">Quero vender meu imóvel</Link>
             <Link href="/politica-de-privacidade/">Política de privacidade</Link>
           </div>

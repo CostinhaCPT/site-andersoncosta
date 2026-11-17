@@ -5,7 +5,7 @@ export const dynamic = 'force-static';
 
 export default function sitemap() {
   const u = (p) => SITE.dominio + p;
-  const fixas = ['/', '/imoveis/', '/metodo-compra-segura/', '/curadoria/', '/anuncie-seu-imovel/', '/sobre/', '/contato/'].map((p) => ({
+  const fixas = ['/', '/imoveis/', '/metodo-compra-segura/', '/curadoria/', '/corretor-de-imoveis-jaragua-do-sul/', '/investir-em-imoveis-no-litoral-sc/', '/anuncie-seu-imovel/', '/sobre/', '/contato/'].map((p) => ({
     url: u(p), changeFrequency: p === '/' || p === '/imoveis/' ? 'daily' : 'monthly', priority: p === '/' ? 1 : 0.7,
   }));
   const regiao = bairros().map((b) => ({ url: u(`/imoveis/${b.cidadeSlug}/${b.bairroSlug}/`), changeFrequency: 'weekly', priority: 0.6 }));
