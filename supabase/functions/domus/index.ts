@@ -313,12 +313,15 @@ async function conferirUm(url: string): Promise<{ ok: boolean | null; motivo: st
 
 async function conferirAgendados(body: Record<string, any>) {
   const agora = Date.now();
-  let q = sb.from("criativos").select("id,imovel_codigo,dados,status,agendado_para").in("status", ["agendado", "rascunho", "erro"]).like("imovel_codigo", `${PREFIXO}%`);
+  let q = sb.from("criativos").select("id,imovel_codigo,dados,status,agendado_para").in("status", ["agendado", "rascunho", "erro"]);
   if (body.criativo_id) q = q.eq("id", String(body.criativo_id));
   else q = q.lte("agendado_para", new Date(agora + Number(body.horas ?? 4) * 3600_000).toISOString()).gte("agendado_para", new Date(agora - 86400_000).toISOString());
   const { data: pecas } = await q.limit(40);
   const porImovel = new Map<string, any[]>();
-  for (const c of pecas ?? []) porImovel.set(c.imovel_codigo, [...(porImovel.get(c.imovel_codigo) ?? []), c]);
+  for (const c of pecas ?? []) {
+    const cods = new Set<string>([c.imovel_codigo, ...((Array.isArray(c.dados?.imoveis) ? c.dados.imoveis : []).map((x: any) => typeof x === "string" ? x : x?.codigo ?? x?.imovel_codigo))]);
+    for (const k of cods) if (typeof k === "string" && k.startsWith(PREFIXO)) porImovel.set(k, [...(porImovel.get(k) ?? []), c]);
+  }
   const res: Record<string, string> = {};
   for (const [codigo, lista] of porImovel) {
     const { data: im } = await sb.from("imoveis").select("id,status,campos").eq("codigo", codigo).maybeSingle();
@@ -327,7 +330,14 @@ async function conferirAgendados(body: Record<string, any>) {
     if (r.vendido && im && im.status !== "vendido") {
       await sb.from("imoveis").update({ status: "vendido", campos: { ...(im.campos ?? {}), saiu_domus: new Date().toISOString(), status_antes: im.status }, atualizado_em: new Date().toISOString() }).eq("id", im.id);
     }
-    for (const c of lista) await sb.from("criativos").update({ dados: { ...(c.dados ?? {}), disponibilidade: { conferida_em: new Date().toISOString(), ok: r.ok, motivo: r.motivo } } }).eq("id", c.id);
+    for (const c of lista) {
+      const ant = c.dados?.disponibilidade;
+      const recente = ant && Date.now() - new Date(ant.conferida_em).getTime() < 60_000;
+      const pior = recente && (ant.ok === false || (ant.ok === null && r.ok === true));
+      const nova = pior ? ant : { conferida_em: new Date().toISOString(), ok: r.ok, motivo: `${codigo}: ${r.motivo}` };
+      c.dados = { ...(c.dados ?? {}), disponibilidade: nova };
+      await sb.from("criativos").update({ dados: c.dados }).eq("id", c.id);
+    }
     res[codigo] = r.ok === true ? "ok" : r.ok === false ? "indisponível" : "não confirmado";
   }
   await sb.rpc("guardar_publicacoes");
