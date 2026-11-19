@@ -1,6 +1,6 @@
 'use client';
 // Renders a landing page built in the admin. Used by the public /lp/ page and by the admin preview.
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SITE } from '@/lib/site';
 import { brl, miniatura } from '@/lib/format';
 import { videoEmbed } from '@/lib/admin/opcoes';
@@ -101,8 +101,7 @@ function Bloco({ b, lp, imoveis, nome, previa, aoEvento }) {
         </section>
       );
     case 'analise':
-      if (!im?.preco) return previa ? <section className="lp-sec"><div className="wrap muted">Escolha um imóvel com preço para a análise.</div></section> : null;
-      return <section className="lp-sec"><div className="wrap"><Analise i={im} /></div></section>;
+      return <section className="lp-sec"><div className="wrap"><AnaliseEscolha d={d} lp={lp} imoveis={imoveis} previa={previa} aoEvento={aoEvento} /></div></section>;
     case 'texto':
       return (
         <section className="lp-sec">
@@ -206,9 +205,7 @@ function CardLp({ it, i, reacoes, previa, aoEvento, nome }) {
 
   return (
     <article className="lp-card">
-      <div className="lp-card-foto" style={dados.fotos?.[0] ? { backgroundImage: `url(${miniatura(dados.fotos[0])})` } : undefined}>
-        {dados.fotos?.length > 1 && <span>{dados.fotos.length} fotos</span>}
-      </div>
+      <FotosCard fotos={dados.fotos || []} titulo={dados.titulo} />
       <div className="lp-card-corpo">
         <small>{dados.bairro} · {dados.cidade}{i?.codigo ? ` · ${i.codigo}` : ''}</small>
         <h3>{dados.titulo}</h3>
@@ -276,5 +273,95 @@ function Formulario({ d, lp, previa, aoEvento }) {
         )}
       </div>
     </section>
+  );
+}
+
+// Imóveis com preço que a página apresenta (blocos de imóveis), na ordem em que aparecem.
+function imoveisDaPagina(lp, imoveis) {
+  const lista = [];
+  const vistos = new Set();
+  for (const b of lp.blocos || []) {
+    if (b.tipo !== 'imoveis') continue;
+    for (const it of b.dados?.itens || []) {
+      const i = it.codigo ? imoveis[String(it.codigo).toUpperCase()] : null;
+      const a = it.avulso;
+      const dados = i || (a && Number(a.preco) ? {
+        codigo: '', titulo: a.titulo, bairro: a.bairro, cidade: a.cidade || 'Jaraguá do Sul', preco: Number(a.preco), tipoSlug: '', aceitaFinanciamento: true,
+      } : null);
+      if (!dados?.preco) continue;
+      const chave = dados.codigo || dados.titulo;
+      if (vistos.has(chave)) continue;
+      vistos.add(chave); lista.push({ chave, dados });
+    }
+  }
+  return lista;
+}
+
+// Análise de compra: o lead escolhe de qual imóvel quer ver a análise.
+function AnaliseEscolha({ d, lp, imoveis, previa, aoEvento }) {
+  const fixo = d.codigo ? imoveis[String(d.codigo).toUpperCase()] : null;
+  const lista = imoveisDaPagina(lp, imoveis);
+  if (fixo?.preco && !lista.some((x) => x.chave === fixo.codigo)) lista.unshift({ chave: fixo.codigo, dados: fixo });
+  const [sel, setSel] = useState(fixo?.codigo || lista[0]?.chave || '');
+  if (!lista.length) return previa ? <p className="muted">Adicione imóveis com preço à página (ou escolha um imóvel nesta análise).</p> : null;
+  const atual = lista.find((x) => x.chave === sel) || lista[0];
+  return (
+    <>
+      {lista.length > 1 && (
+        <div className="analise-escolha">
+          <label htmlFor="an-sel">Análise de compra para qual imóvel?</label>
+          <select id="an-sel" value={atual.chave} onChange={(e) => setSel(e.target.value)}>
+            {lista.map((x) => <option key={x.chave} value={x.chave}>{x.dados.codigo ? `${x.dados.codigo} · ` : ''}{x.dados.titulo}</option>)}
+          </select>
+        </div>
+      )}
+      <Analise key={atual.chave} i={atual.dados} />
+    </>
+  );
+}
+
+// Fotos do card: todas as fotos, arrasta no celular, setas no computador, toque abre em tela cheia.
+function FotosCard({ fotos, titulo }) {
+  const ref = useRef(null);
+  const [n, setN] = useState(0);
+  const [aberta, setAberta] = useState(null);
+  const total = fotos.length;
+  const ir = (e, dir) => {
+    e.preventDefault(); e.stopPropagation();
+    const el = ref.current; if (!el) return;
+    el.scrollTo({ left: Math.max(0, Math.min(total - 1, n + dir)) * el.clientWidth, behavior: 'smooth' });
+  };
+  const prox = () => setAberta((x) => (x + 1) % total);
+  const ant = () => setAberta((x) => (x - 1 + total) % total);
+  useEffect(() => {
+    if (aberta === null) return;
+    const k = (e) => { if (e.key === 'Escape') setAberta(null); if (e.key === 'ArrowRight') prox(); if (e.key === 'ArrowLeft') ant(); };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  }, [aberta, total]);
+  if (!total) return <div className="lp-card-foto" />;
+  return (
+    <div className="lp-card-foto">
+      <div className="fotos-trilho" ref={ref} onScroll={() => { const el = ref.current; if (el) setN(Math.round(el.scrollLeft / el.clientWidth)); }}>
+        {fotos.map((f, k) => (Math.abs(k - n) <= 1
+          ? <img key={f} src={miniatura(f)} alt={k === 0 ? titulo : `${titulo}, foto ${k + 1}`} loading={k === 0 ? 'eager' : 'lazy'} decoding="async" draggable="false" onClick={() => setAberta(k)} style={{ cursor: 'zoom-in' }} />
+          : <span key={f} className="foto-depois" aria-hidden="true" />))}
+      </div>
+      {total > 1 && <>
+        {n > 0 && <button type="button" className="fotos-nav ant" aria-label="Foto anterior" onClick={(e) => ir(e, -1)}>‹</button>}
+        {n < total - 1 && <button type="button" className="fotos-nav prox" aria-label="Próxima foto" onClick={(e) => ir(e, 1)}>›</button>}
+        <span className="lp-foto-cont">{n + 1} / {total}</span>
+      </>}
+      {aberta !== null && (
+        <div className="lightbox" onClick={() => setAberta(null)}>
+          <img src={fotos[aberta]} alt={`${titulo}, foto ${aberta + 1}`} onClick={(e) => e.stopPropagation()} />
+          <button className="x" aria-label="Fechar">×</button>
+          {total > 1 && <>
+            <button className="nav ant" aria-label="Anterior" onClick={(e) => { e.stopPropagation(); ant(); }}>‹</button>
+            <button className="nav prox" aria-label="Próxima" onClick={(e) => { e.stopPropagation(); prox(); }}>›</button>
+          </>}
+          <span className="cont">{aberta + 1} / {total}</span>
+        </div>
+      )}
+    </div>
   );
 }

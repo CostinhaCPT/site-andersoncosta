@@ -107,6 +107,9 @@ function SeletorImoveis({ im, valor, aoMudar }) {
 function NovaLp({ tipo, im, aoFechar, aoCriar }) {
   const [leads, setLeads] = useState([]);
   const [f, setF] = useState({ lead_id: '', codigos: [], objetivo: '', publico: '', angulo: '', notas: '' });
+  // Campos do topo escolhidos já na criação; o que ficar vazio vem do modelo ou da IA.
+  const [h, setH] = useState({ eyebrow: '', titulo: '', subtitulo: '', cta_texto: '', cta_acao: '' });
+  const modeloHero = MODELOS[tipo]().hero;
   const [ocupado, setOcupado] = useState('');
   const [erro, setErro] = useState('');
   useEffect(() => {
@@ -126,6 +129,7 @@ function NovaLp({ tipo, im, aoFechar, aoCriar }) {
       } else if (f.codigos.length) {
         blocos = blocos.map((b) => (b.tipo === 'imoveis' ? { ...b, dados: { ...b.dados, itens: f.codigos.map((c) => ({ codigo: c, porque: '', atencao: '' })) } } : b));
       }
+      for (const k of Object.keys(h)) if (String(h[k]).trim()) hero = { ...hero, [k]: h[k] };
       const slug = tipo === 'curadoria' ? slugAleatorio() : `${slugify(nome).slice(0, 40) || 'pagina'}-${slugAleatorio(4)}`;
       const { data, error } = await sb().from('lps').insert({
         slug, tipo, nome: nome.slice(0, 90), lead_id: f.lead_id || null, hero, blocos, opcoes: base.opcoes, status: 'rascunho',
@@ -155,6 +159,16 @@ function NovaLp({ tipo, im, aoFechar, aoCriar }) {
           </>
         )}
         <div className="adm-campo"><span>Imóveis {tipo === 'curadoria' ? '(até 3 é o ideal)' : ''}</span><SeletorImoveis im={im} valor={f.codigos} aoMudar={(c) => setF({ ...f, codigos: c })} /></div>
+        <div className="adm-campo"><span>Topo da página (opcional)</span>
+          <p className="adm-sub" style={{ margin: 0 }}>O que você preencher fica como está, mesmo com a IA. O que deixar vazio vem do modelo ou da IA. Use {'{nome}'} para o primeiro nome do lead.</p>
+          <input placeholder={`Linha de cima · ${modeloHero.eyebrow || ''}`} value={h.eyebrow} onChange={(e) => setH({ ...h, eyebrow: e.target.value })} />
+          <input placeholder={`Título · ${modeloHero.titulo || 'ex.: {nome}, separei 3 casas para vocês'}`} value={h.titulo} onChange={(e) => setH({ ...h, titulo: e.target.value })} />
+          <textarea rows={2} placeholder={`Subtítulo · ${modeloHero.subtitulo || ''}`} value={h.subtitulo} onChange={(e) => setH({ ...h, subtitulo: e.target.value })} />
+          <div className="adm-grade2">
+            <input placeholder={`Texto do botão · ${modeloHero.cta_texto || ''}`} value={h.cta_texto} onChange={(e) => setH({ ...h, cta_texto: e.target.value })} />
+            <select value={h.cta_acao} onChange={(e) => setH({ ...h, cta_acao: e.target.value })}><option value="">Botão leva para: padrão do modelo</option><option value="rolar">Conteúdo da página</option><option value="formulario">Formulário</option><option value="whatsapp">WhatsApp</option></select>
+          </div>
+        </div>
         <label className="adm-campo"><span>Notas para a IA (opcional)</span><textarea rows={3} placeholder="O que o lead contou, o que destacar, o que evitar" value={f.notas} onChange={(e) => setF({ ...f, notas: e.target.value })} /></label>
         {erro && <p className="adm-erro">{erro}</p>}
         {ocupado ? <p className="adm-msg">{ocupado}</p> : (
