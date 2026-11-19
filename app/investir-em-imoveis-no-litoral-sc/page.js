@@ -47,6 +47,7 @@ export default function Pagina() {
       <div>
         <h2>Para quem é</h2>
         <p>Para quem quer um imóvel no litoral para renda de aluguel, para valorização de longo prazo ou para usar com a família, e prefere ter um corretor responsável pela compra, e não só um vendedor de empreendimento.</p>
+        <p><Link href="/perguntas/vale-a-pena-comprar-imovel-na-planta/">Vale a pena comprar imóvel na planta?</Link> · <Link href="/perguntas/estrangeiro-pode-comprar-imovel-no-brasil/">Estrangeiro pode comprar imóvel no Brasil?</Link></p>
         <p>Também atendo quem quer comprar para morar em <Link href="/corretor-de-imoveis-jaragua-do-sul/">Jaraguá do Sul e região</Link>.</p>
       </div>
     </div></section>

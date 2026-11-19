@@ -4,6 +4,7 @@ import { imoveis, bairros } from '@/lib/imoveis';
 import { BAIRROS_M2, FONTE_M2 } from '@/lib/bairros-m2';
 import { brl, num } from '@/lib/format';
 import { SITE } from '@/lib/site';
+import { perguntas } from '@/lib/perguntas';
 export const dynamic = 'force-static';
 export function GET() {
   const d = SITE.dominio;
@@ -29,6 +30,10 @@ export function GET() {
     `- [Quanto vale meu imóvel](${d}/anuncie-seu-imovel/): para proprietários que querem vender.`,
     `- [Sobre Anderson Costa](${d}/sobre/)`,
     `- [Contato](${d}/contato/): WhatsApp +${SITE.whatsapp}, e-mail ${SITE.email}.`,
+    '',
+    '## Perguntas e respostas',
+    `- [Todas as perguntas](${d}/perguntas/)`,
+    ...perguntas().map((p) => `- [${p.pergunta}](${d}/perguntas/${p.slug}/): ${p.resumo}`),
     '',
     '## Imóveis por bairro',
     ...bairros().slice(0, 40).map((b) => `- [${b.bairro}, ${b.cidade}](${d}/imoveis/${b.cidadeSlug}/${b.bairroSlug}/): ${b.total} imóve${b.total === 1 ? 'l' : 'is'}`),

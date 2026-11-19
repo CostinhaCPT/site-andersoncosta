@@ -50,6 +50,7 @@ export default function Pagina() {
         <p>Comprar o imóvel certo em Jaraguá passa por três perguntas: o bairro combina com a rotina da família, o preço está justo para aquele bairro e o que o anúncio não conta. Eu respondo as três antes de você sair de casa.</p>
         <p>Hoje são {daCidade.length} imóveis à venda em Jaraguá do Sul no meu catálogo{precos.length ? `, de ${brl(precos[0])} a ${brl(precos[precos.length - 1])}` : ''}, em {bairrosJgua.length} bairros, além dos que chegam pelas parcerias e ainda não estão no site.</p>
         <p><Link href="/metodo-compra-segura/">Veja como funciona o Método Compra Segura</Link></p>
+        <p><Link href="/perguntas/quanto-custa-uma-casa-em-jaragua-do-sul/">Quanto custa uma casa em Jaraguá do Sul</Link> · <Link href="/perguntas/">Todas as perguntas</Link></p>
       </div>
       <div>
         <h2>O que eu faço por quem vende</h2>
