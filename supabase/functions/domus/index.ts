@@ -292,6 +292,48 @@ async function selar(codigo?: string, maxFotos = 30) {
   return { codigo: alvo.codigo, feitas, falhas, completo, total: origem.length };
 }
 
+
+// ---- Conferência ao vivo antes de postar -----------------------------------------------------
+// Antes de uma peça ir ao ar, confirma na página da própria Domus que o imóvel continua disponível.
+// Resultado fica em criativos.dados.disponibilidade; o banco só deixa publicar com confirmação recente.
+async function conferirUm(url: string): Promise<{ ok: boolean | null; motivo: string; vendido?: boolean }> {
+  let r: Response;
+  try { r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (sincronizacao parceria)" } }); }
+  catch { return { ok: null, motivo: "Não consegui abrir o site da Domus para conferir." }; }
+  if (r.status === 404 || r.status === 410) return { ok: false, vendido: true, motivo: "O anúncio saiu do site da Domus." };
+  if (!r.ok) return { ok: null, motivo: `O site da Domus respondeu ${r.status}; não deu para conferir.` };
+  const h = await r.text();
+  const m = h.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  let d: any = null;
+  try { d = m ? JSON.parse(m[1])?.props?.initialState?.property?.data ?? null : null; } catch { /* página fora do padrão */ }
+  if (!d) return { ok: null, motivo: "Não consegui ler a página da Domus; confira o imóvel antes de postar." };
+  if (d.transaction !== "VENDA" || d.status !== "Disponível" || d.is_published === false) return { ok: false, vendido: true, motivo: `A Domus mostra o imóvel como "${d.status ?? "indisponível"}".` };
+  return { ok: true, motivo: "Disponível na Domus." };
+}
+
+async function conferirAgendados(body: Record<string, any>) {
+  const agora = Date.now();
+  let q = sb.from("criativos").select("id,imovel_codigo,dados,status,agendado_para").in("status", ["agendado", "rascunho", "erro"]).like("imovel_codigo", `${PREFIXO}%`);
+  if (body.criativo_id) q = q.eq("id", String(body.criativo_id));
+  else q = q.lte("agendado_para", new Date(agora + Number(body.horas ?? 4) * 3600_000).toISOString()).gte("agendado_para", new Date(agora - 86400_000).toISOString());
+  const { data: pecas } = await q.limit(40);
+  const porImovel = new Map<string, any[]>();
+  for (const c of pecas ?? []) porImovel.set(c.imovel_codigo, [...(porImovel.get(c.imovel_codigo) ?? []), c]);
+  const res: Record<string, string> = {};
+  for (const [codigo, lista] of porImovel) {
+    const { data: im } = await sb.from("imoveis").select("id,status,campos").eq("codigo", codigo).maybeSingle();
+    const link = im?.campos?.link_domus;
+    const r = link ? await conferirUm(link) : { ok: null, motivo: "Imóvel sem link da Domus para conferir." };
+    if (r.vendido && im && im.status !== "vendido") {
+      await sb.from("imoveis").update({ status: "vendido", campos: { ...(im.campos ?? {}), saiu_domus: new Date().toISOString(), status_antes: im.status }, atualizado_em: new Date().toISOString() }).eq("id", im.id);
+    }
+    for (const c of lista) await sb.from("criativos").update({ dados: { ...(c.dados ?? {}), disponibilidade: { conferida_em: new Date().toISOString(), ok: r.ok, motivo: r.motivo } } }).eq("id", c.id);
+    res[codigo] = r.ok === true ? "ok" : r.ok === false ? "indisponível" : "não confirmado";
+  }
+  await sb.rpc("guardar_publicacoes");
+  return { conferidos: porImovel.size, resultado: res };
+}
+
 async function autorizado(req: Request, body: Record<string, any>) {
   const { data } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
   if (data?.valor?.token && body.token === data.valor.token) return true;
@@ -309,6 +351,7 @@ Deno.serve(async (req) => {
   if (!(await autorizado(req, body))) return json({ erro: "acesso negado" }, 403);
   try {
     if (body.acao === "selar") return json(await selar(body.codigo, Number(body.max ?? 30)));
+    if (body.acao === "conferir") return json(await conferirAgendados(body));
     if (body.acao === "redigir") return json(await redigir(Number(body.qtd ?? 6), Number(body.minimo ?? 0)));
     return json(await sincronizar({ limite: body.limite }));
   }
