@@ -1,0 +1,17 @@
+{
+  "name": "Anderson Costa · CRM",
+  "short_name": "AC CRM",
+  "description": "Contatos, negócios, agenda e WhatsApp do Anderson Costa",
+  "id": "/admin/",
+  "start_url": "/admin/",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#f5f4f1",
+  "theme_color": "#111111",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/app/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/app/icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/app/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
