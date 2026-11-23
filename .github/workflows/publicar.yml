@@ -30,7 +30,7 @@ jobs:
           CI: '1'
         run: |
           node scripts/puxar-imoveis.mjs
-          VERSAO=$( { sha256sum data/imoveis.json; git rev-parse HEAD; } | sha256sum | cut -c1-16 )
+          VERSAO=$( { sha256sum data/imoveis.json; git rev-parse HEAD; TZ=America/Sao_Paulo date +%F; } | sha256sum | cut -c1-16 )
           echo "versao=$VERSAO" >> "$GITHUB_OUTPUT"
           ATUAL=""
           if git fetch --depth=1 origin publicado 2>/dev/null; then ATUAL=$(git show origin/publicado:versao.txt 2>/dev/null || true); fi
