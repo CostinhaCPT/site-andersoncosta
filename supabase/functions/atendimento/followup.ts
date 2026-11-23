@@ -138,6 +138,9 @@ export async function travas(sb: SupabaseClient, lead: Record<string, any>, cfg:
   if (!lead.whatsapp) return "sem_whatsapp";
   if (!ETAPAS_OK.includes(lead.etapa ?? "novo")) return `etapa:${lead.etapa}`;
   if (lead.automacao_pausada_ate && Date.parse(lead.automacao_pausada_ate) > Date.now()) return "pausado";
+  const passo = lead.campos?.proximo_passo;
+  if (passo?.tipo === "retorno" && Date.parse(passo.quando) > Date.now()) return "retorno_combinado";
+  if (passo?.responsavel === "anderson" && Date.now() - Date.parse(passo.aceito_em) < 3 * 24 * H) return "passo_com_anderson";
   const { data: sup } = await sb.from("supressao").select("fone").eq("fone", lead.whatsapp).maybeSingle();
   if (sup) return "supressao";
   const { count: visitas } = await sb.from("visitas").select("id", { count: "exact", head: true })

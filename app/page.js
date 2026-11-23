@@ -13,15 +13,24 @@ const unicos = (k, n) => [...new Map(imoveis.map((i) => [i[k], i[n]])).entries()
 export default function Home() {
   const porCodigo = new Map(imoveis.map((i) => [i.codigo, i]));
   const livre = (i) => i && !i.reservado;
-  // As 3 da vitrine: as escolhidas em SITE.vitrine; se alguma saiu do ar, entram destaques próprios
-  const vitrine = SITE.vitrine.map((c) => porCodigo.get(c)).filter(livre);
+  // Rodízio diário (dia de Brasília): a cada dia entram 3 imóveis próprios diferentes em "Selecionados por mim"
+  // e uma capa diferente no topo. O site é gerado de novo todo dia (a publicação inclui a data), então a troca é automática.
+  // Só entram imóveis próprios (AC-) com 10 fotos ou mais, todas tratadas e com o selo.
+  const dia = Math.floor((Date.now() - 3 * 36e5) / 864e5);
+  const semente = (n) => { let t = (dia * 2654435761 + n * 40503) >>> 0; return () => { t = (t + 0x6d2b79f5) >>> 0; let r = Math.imul(t ^ (t >>> 15), 1 | t); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; };
+  const embaralha = (lista, n) => { const a = [...lista], rnd = semente(n); for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(rnd() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; };
+  const pool = imoveis.filter((i) => /^AC-/.test(i.codigo) && livre(i) && (i.fotos || []).length >= 10).sort((a, b) => a.codigo.localeCompare(b.codigo));
+  const vitrine = embaralha(pool, 1).slice(0, 3);
+  // Se faltar imóvel no pool, completa com os escolhidos fixos e depois com destaques próprios
+  for (const c of SITE.vitrine) { const i = porCodigo.get(c); if (vitrine.length >= 3) break; if (livre(i) && !vitrine.includes(i)) vitrine.push(i); }
   for (const i of imoveis.filter((x) => (x.destaque || /^AC-/.test(x.codigo)) && livre(x)).sort((a, b) => (b.preco || 0) - (a.preco || 0))) {
     if (vitrine.length >= 3) break;
     if (!vitrine.includes(i)) vitrine.push(i);
   }
-  // Uma foto por dia, em rodízio (o site é gerado de novo todo dia, então a troca acontece sozinha)
+  // Capa do topo: outro imóvel do pool (diferente dos 3 de baixo, para não repetir na mesma tela)
+  const capaPool = embaralha(pool.filter((i) => !vitrine.includes(i)), 2);
   const capasOk = SITE.capas.map(([c, n]) => [porCodigo.get(c), n]).filter(([i, n]) => livre(i) && i.fotos[n]);
-  const [capa, nCapa] = capasOk.length ? capasOk[Math.floor((Date.now() - 3 * 36e5) / 864e5) % capasOk.length] : [vitrine[0], 0];
+  const [capa, nCapa] = capaPool.length ? [capaPool[0], 0] : capasOk.length ? capasOk[dia % capasOk.length] : [vitrine[0], 0];
   const fotoCapa = capa?.fotos[nCapa];
   const bairrosComImovel = new Set(imoveis.filter((i) => i.cidadeSlug === 'jaragua-do-sul').map((i) => i.bairroSlug));
   return (

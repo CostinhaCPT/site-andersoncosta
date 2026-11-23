@@ -95,7 +95,7 @@ async function claude(system: string, messages: unknown[], semFerramentas = fals
       "x-api-key": ANTHROPIC, "anthropic-version": "2023-06-01", "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: await modelo(), max_tokens: 1024,
+      model: await modelo(), max_tokens: 4096,
       system: [{ type: "text", text: system }], tools: FERRAMENTAS, messages,
       ...(semFerramentas ? { tool_choice: { type: "none" } } : {}),
     }),
@@ -399,8 +399,23 @@ const FERRAMENTAS = [
         resumo: { type: "string", description: "Resumo para o Anderson: nome, tipo de lead, objetivo, região, quem vai morar, prazo e motivação nas palavras da pessoa, faixa, pagamento, imóveis de interesse, objeções, formato e horário de conversa combinados, pontuação e a primeira frase sugerida para ele abrir a conversa" },
         mensagem_whatsapp: { type: "string", description: "Mensagem em primeira pessoa, como se fosse a própria pessoa escrevendo ao Anderson, até 4 linhas" },
         pontuacao: { type: "string", enum: ["A", "B", "C", "D"] },
+        formato: { type: "string", enum: ["mensagem", "ligacao", "online", "cafe"], description: "Formato de conversa que a pessoa escolheu, se escolheu" },
+        quando: { type: "string", description: "Horário combinado, AAAA-MM-DDTHH:MM, só se a pessoa escolheu um dos horários livres" },
       },
       required: ["motivo", "resumo", "mensagem_whatsapp"],
+    },
+  },
+  {
+    name: "registrar_proximo_passo",
+    description: "Registra o que ficou combinado quando não é a conversa com o Anderson (essa vai em passar_para_anderson): um pedido que só o Anderson resolve e que você disse que já pediu a ele (vídeo, condomínio, custos por escrito, documentação, financiamento, distância), ou a data que a pessoa pediu para ser procurada de novo. Vira tarefa com prazo e aparece no funil.",
+    input_schema: {
+      type: "object",
+      properties: {
+        tipo: { type: "string", enum: ["pedido_anderson", "retorno"], description: "pedido_anderson: algo que o Anderson precisa mandar ou responder. retorno: a pessoa pediu para ser procurada numa data" },
+        descricao: { type: "string", description: "O que foi combinado, com as palavras da conversa (ex.: vídeo da área de festas do AC-0015 e valor do condomínio)" },
+        quando: { type: "string", description: "Só para retorno: data pedida, AAAA-MM-DD" },
+      },
+      required: ["tipo", "descricao"],
     },
   },
 ];
@@ -483,6 +498,97 @@ async function registrarLead(i: Record<string, unknown>, ctx: Ctx) {
   return { ok: true };
 }
 
+const FORMATO_CONVERSA: Record<string, string> = { mensagem: "Responder por mensagem", ligacao: "Ligar", online: "Reunião on-line com", cafe: "Café com" };
+const BRT = -3 * 3600_000;
+/** Inside Anderson's hours (Mon-Fri 8h-18h, Sat 8h-12h, Brasília): now + horas. Outside: 8h30 of the next working day. */
+function prazoResposta(horas = 1) {
+  const aberto = (t: number) => { const l = new Date(t + BRT), h = l.getUTCHours() + l.getUTCMinutes() / 60, d = l.getUTCDay();
+    return d >= 1 && d <= 5 ? h >= 8 && h < 18 : d === 6 ? h >= 8 && h < 12 : false; };
+  let t = Date.now() + horas * 3600_000;
+  if (aberto(t)) return new Date(t);
+  for (let k = 0; k < 8; k++) {
+    const l = new Date(t + BRT);
+    const h = l.getUTCHours() + l.getUTCMinutes() / 60;
+    t = Date.UTC(l.getUTCFullYear(), l.getUTCMonth(), l.getUTCDate() + (h >= 8 ? 1 : 0), 8, 30) - BRT;
+    if (aberto(t)) return new Date(t);
+  }
+  return new Date(t);
+}
+function dataCombinada(q: unknown, padraoHoras: number) {
+  const txt = String(q ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(txt)) {
+    const d = new Date(`${txt.length === 10 ? `${txt}T09:00` : txt}:00-03:00`);
+    if (!isNaN(d.getTime()) && d.getTime() > Date.now() - 3600_000) return d;
+  }
+  return prazoResposta(padraoHoras);
+}
+const dataBR = (d: Date) => new Date(d.getTime() + BRT).toISOString().slice(0, 10).split("-").reverse().join("/");
+const horaBR = (d: Date) => { const l = new Date(d.getTime() + BRT); return `${dataBR(d).slice(0, 5)} ${String(l.getUTCHours()).padStart(2, "0")}h${l.getUTCMinutes() ? String(l.getUTCMinutes()).padStart(2, "0") : ""}`; };
+/** One open task per lead and key: updates it if it already exists. */
+async function criarTarefa(ctx: Ctx, t: { titulo: string; descricao: string; tipo: string; vence: Date; chave: string; prioridade?: string }) {
+  if (!ctx.leadId) return;
+  const linha = { titulo: t.titulo.slice(0, 120), descricao: t.descricao.slice(0, 1000), tipo: t.tipo, prioridade: t.prioridade ?? "alta",
+    vence_em: t.vence.toISOString(), negocio_id: ctx.leadId, origem: t.chave };
+  const { data: ja } = await sb.from("tarefas").select("id").eq("negocio_id", ctx.leadId).eq("origem", t.chave).is("concluida_em", null).maybeSingle();
+  if (ja) await sb.from("tarefas").update(linha).eq("id", ja.id); else await sb.from("tarefas").insert(linha);
+}
+/** Stores the agreed next step on the lead (proxima_acao + campos.proximo_passo) and logs it. */
+async function gravarPasso(ctx: Ctx, passo: { tipo: string; descricao: string; quando: Date; responsavel: "anderson" | "lu" }, rotulo: string) {
+  const { data: l } = await sb.from("leads").select("campos").eq("id", ctx.leadId!).single();
+  const registro = { ...passo, quando: passo.quando.toISOString(), aceito_em: new Date().toISOString() };
+  await sb.from("leads").update({
+    proxima_acao: rotulo.slice(0, 300), proxima_acao_em: registro.quando,
+    campos: { ...(l?.campos ?? {}), proximo_passo: registro }, atualizado_em: new Date().toISOString(),
+  }).eq("id", ctx.leadId!);
+  await sb.from("automacao_log").insert({ lead_id: ctx.leadId, evento: "proximo_passo", detalhe: registro });
+}
+async function registrarProximoPasso(i: Record<string, unknown>, ctx: Ctx) {
+  if (!ctx.leadId) return { erro: "registre a pessoa com registrar_lead antes" };
+  const tipo = i.tipo === "retorno" ? "retorno" : "pedido_anderson";
+  const descricao = String(i.descricao ?? "").trim().slice(0, 300);
+  if (!descricao) return { erro: "descreva o que foi combinado" };
+  const { data: l } = await sb.from("leads").select("nome").eq("id", ctx.leadId).single();
+  const nome = l?.nome ?? "lead";
+  if (tipo === "pedido_anderson") {
+    const vence = prazoResposta(4);
+    // A scheduled conversation stays as the lead's next action; the request still becomes its own task
+    const { data: lc } = await sb.from("leads").select("campos").eq("id", ctx.leadId).single();
+    const atual = lc?.campos?.proximo_passo;
+    if (!(atual?.tipo === "conversa" && Date.parse(atual.quando) > Date.now())) {
+      await gravarPasso(ctx, { tipo, descricao, quando: vence, responsavel: "anderson" }, `Anderson envia: ${descricao}`);
+    }
+    await criarTarefa(ctx, { titulo: `Enviar para ${nome}: ${descricao}`, descricao, tipo: "whatsapp", vence, chave: `lu-pedido-${ctx.conversaId}` });
+    if (!ctx.simulacao) await sb.from("notificacoes").insert({
+      titulo: `${nome} aguarda: ${descricao}`.slice(0, 120), corpo: "Pedido anotado pela Lu. Está nas suas tarefas.",
+      url: "/admin/?aba=tarefas", chave: `pedido-${ctx.conversaId}-${Date.now()}`,
+    }).then(() => {}, () => {});
+    return { ok: true, observacao: "Virou tarefa do Anderson. Não prometa prazo à pessoa." };
+  }
+  const vence = dataCombinada(i.quando, 72);
+  await gravarPasso(ctx, { tipo, descricao, quando: vence, responsavel: "lu" }, `Retomar em ${dataBR(vence)}: ${descricao}`);
+  // Past the 24h WhatsApp window only a template or Anderson himself can reopen the chat, so the return is his task on that date
+  await criarTarefa(ctx, { titulo: `Retomar ${nome} (pediu contato em ${dataBR(vence)})`, descricao, tipo: "whatsapp", vence, chave: `lu-retorno-${ctx.conversaId}`, prioridade: "normal" });
+  return { ok: true, retorno_em: dataBR(vence), observacao: "A Lu procura a pessoa nessa data. Confirme a data com ela em meia frase." };
+}
+const ORDEM_ETAPAS = ["novo", "em_conversa", "qualificado", "curadoria_enviada", "visita_agendada", "visita_realizada", "proposta"];
+/** Moves the stage forward from what is known about the lead. Never backwards, never out of lost. */
+async function avancarEtapa(ctx: Ctx) {
+  if (!ctx.leadId) return null;
+  const { data: l } = await sb.from("leads").select("etapa, faixa_max, faixa_investimento, prazo_compra, prazo, credito, pagamento, regioes, perfil, nao_contatar").eq("id", ctx.leadId).single();
+  if (!l || l.nao_contatar) return null;
+  const atual = ORDEM_ETAPAS.indexOf(l.etapa ?? "novo");
+  if (atual < 0) return null;
+  const tem = (v: unknown) => v != null && v !== "" && !(Array.isArray(v) && !v.length);
+  const faixa = tem(l.faixa_max) || tem(l.faixa_investimento), prazo = tem(l.prazo_compra) || tem(l.prazo);
+  const pontos = [faixa, prazo, tem(l.credito) || tem(l.pagamento), tem(l.regioes) || tem(l.perfil)].filter(Boolean).length;
+  const alvo = faixa && prazo && pontos >= 3 ? 2 : 1;
+  if (alvo <= atual) return null;
+  const para = ORDEM_ETAPAS[alvo];
+  await sb.from("leads").update({ etapa: para, atualizado_em: new Date().toISOString() }).eq("id", ctx.leadId);
+  await sb.from("automacao_log").insert({ lead_id: ctx.leadId, evento: "etapa", detalhe: { de: l.etapa, para, origem: "lu" } });
+  return para;
+}
+
 async function passarParaAnderson(i: Record<string, unknown>, ctx: Ctx) {
   const { data: conv } = await sb.from("conversas").select("passada_em, contexto").eq("id", ctx.conversaId).single();
   const ref = ctx.conversaId.slice(0, 6).toUpperCase();
@@ -496,10 +602,25 @@ async function passarParaAnderson(i: Record<string, unknown>, ctx: Ctx) {
 
   let lead: Record<string, any> = {};
   if (ctx.leadId) {
-    const upd: Record<string, unknown> = { etapa: "qualificado", atualizado_em: new Date().toISOString() };
+    const upd: Record<string, unknown> = { atualizado_em: new Date().toISOString() };
     if (i.pontuacao) upd.pontuacao = i.pontuacao;
     const { data } = await sb.from("leads").update(upd).eq("id", ctx.leadId).select("*").single();
     lead = data ?? {};
+    // Hot list: every handoff becomes a task for Anderson with a deadline, and the lead's next action
+    try {
+      const formato = String(i.formato ?? "");
+      const marcado = i.quando ? dataCombinada(i.quando, 1) : null;
+      const vence = marcado ?? prazoResposta(1);
+      const nome = lead.nome ?? "lead";
+      const acao = marcado && formato && formato !== "mensagem"
+        ? `${FORMATO_CONVERSA[formato] ?? "Conversa com"} ${nome}, ${horaBR(marcado)}`
+        : `Responder ${nome}`;
+      await gravarPasso(ctx, { tipo: "conversa", descricao: `${acao} (${String(i.motivo ?? "")})`, quando: vence, responsavel: "anderson" }, `Anderson: ${acao}`);
+      await criarTarefa(ctx, {
+        titulo: `${acao} · ${i.pontuacao ?? lead.pontuacao ?? "?"} · ${String(i.motivo ?? "")}`, descricao: String(i.resumo ?? ""),
+        tipo: formato === "ligacao" ? "ligar" : "whatsapp", vence, chave: `lu-handoff-${ctx.conversaId}`,
+      });
+    } catch (e) { console.error("tarefa handoff", e); }
   }
 
   // Só um e-mail por conversa
@@ -556,6 +677,7 @@ async function executar(nome: string, input: Record<string, unknown>, ctx: Ctx) 
     if (nome === "buscar_conhecimento") return await buscarConhecimento(input);
     if (nome === "registrar_lead") return await registrarLead(input, ctx);
     if (nome === "passar_para_anderson") return await passarParaAnderson(input, ctx);
+    if (nome === "registrar_proximo_passo") return await registrarProximoPasso(input, ctx);
     if (nome === "oferecer_visita" || nome === "verificar_horario") {
       const { agenda: a } = await config();
       const im = await imovelDaVisita(input.imovel_codigo as string);
@@ -766,6 +888,61 @@ async function simularConversa(body: Record<string, any>) {
     await sb.from("leads").delete().eq("id", lead.id);
   }
   return { transcricao, final };
+}
+
+async function simularTurno(body: Record<string, any>) {
+  let convId = body.sessao ? String(body.sessao) : null;
+  let leadId: string | null = null;
+  if (convId) {
+    const { data: c } = await sb.from("conversas").select("id, lead_id, contexto").eq("id", convId).maybeSingle();
+    if (!c?.contexto?.simulacao) return { erro: "sessão de simulação não encontrada" };
+    leadId = c.lead_id;
+  }
+  if (body.encerrar && convId) {
+    await limparSimulacao(convId, leadId);
+    return { encerrada: true };
+  }
+  if (!convId) {
+    const referral = body.anuncio_id ? { source_type: "ad", source_id: String(body.anuncio_id), headline: String(body.headline ?? "") } : null;
+    const { data: lead, error: e1 } = await sb.from("leads").insert({
+      nome: body.nome ? String(body.nome).slice(0, 40) : null, canal: "WhatsApp", etapa: "novo", nao_contatar: false,
+      origem: { canal: "simulacao", ...(referral ? { anuncio: referral.source_id, anuncio_titulo: referral.headline } : {}) },
+      campos: { simulacao: true },
+    }).select("id").single();
+    if (e1) throw e1;
+    leadId = lead.id;
+    const { data: conv, error: e2 } = await sb.from("conversas").insert({
+      canal: "whatsapp", lead_id: leadId, contexto: { simulacao: true, ...(referral ? { referral } : {}) },
+    }).select("id").single();
+    if (e2) { await sb.from("leads").delete().eq("id", leadId); throw e2; }
+    convId = conv.id;
+  }
+  const fala = String(body.mensagem ?? "").slice(0, 600);
+  await sb.from("mensagens").insert({ conversa_id: convId, papel: "usuario", conteudo: fala, meta: { simulacao: true } });
+  const { data: atual } = await sb.from("conversas").select("*").eq("id", convId).single();
+  const ctx: Ctx = { canal: "whatsapp", conversaId: convId!, leadId, handoff: null, agenda: null, simulacao: true };
+  const r = await turno(ctx, atual, {}, null);
+  const { data: l } = await sb.from("leads").select("nome, etapa, termometro, termometro_faixa, faixa_max, faixa_investimento, prazo_compra, credito, regioes, objetivo, proxima_acao, proxima_acao_em, pontuacao").eq("id", leadId).single();
+  const { data: tarefas } = await sb.from("tarefas").select("titulo, vence_em").eq("negocio_id", leadId);
+  const { data: ferr } = await sb.from("mensagens").select("conteudo, meta").eq("conversa_id", convId).eq("papel", "ferramenta").order("criado_em", { ascending: false }).limit(4);
+  const { data: c2 } = await sb.from("conversas").select("status").eq("id", convId).single();
+  return { sessao: convId, lu: r.resposta, status: c2?.status, lead: l, tarefas,
+    ferramentas: (ferr ?? []).map((f: any) => f.conteudo) };
+}
+async function limparSimulacao(convId: string, leadId: string | null) {
+  await sb.from("mensagens").delete().eq("conversa_id", convId);
+  await sb.from("conversas").delete().eq("id", convId);
+  if (leadId) {
+    const { data: l } = await sb.from("leads").select("contato_id, campos").eq("id", leadId).maybeSingle();
+    await sb.from("automacao_log").delete().eq("lead_id", leadId);
+    await sb.from("followup_fila").delete().eq("lead_id", leadId).then(() => {}, () => {});
+    await sb.from("leads").delete().eq("id", leadId);
+    if (l?.contato_id) {
+      const { count } = await sb.from("leads").select("id", { count: "exact", head: true }).eq("contato_id", l.contato_id);
+      if (!count) await sb.from("contatos").delete().eq("id", l.contato_id);
+    }
+  }
+  await sb.from("notificacoes").delete().like("chave", `%${convId}%`);
 }
 
 async function contextoImovel(codigo?: string) {
@@ -1123,6 +1300,8 @@ async function gerarRetomada(leadId: string, passo: number, padrao: string): Pro
       .in("papel", ["usuario", "assistente"]).order("criado_em", { ascending: true }).limit(40);
     const { data: l } = await sb.from("leads").select(CAMPOS_LEAD.join(",")).eq("id", leadId).maybeSingle();
     const leadTxt = JSON.stringify(Object.fromEntries(Object.entries(l ?? {}).filter(([, v]) => v != null && !(Array.isArray(v) && !v.length))));
+    const { data: lp } = await sb.from("leads").select("campos").eq("id", leadId).maybeSingle();
+    const combinado = lp?.campos?.proximo_passo?.tipo === "retorno" ? `\n\nA pessoa pediu para ser procurada agora. O combinado foi: ${lp.campos.proximo_passo.descricao}. Retome por aí, lembrando em meia frase que ela pediu este contato.` : "";
     const passoTxt = passo === 1
       ? "toque 1, no mesmo dia: continue o fio de onde parou, entregue a próxima informação que ela ia querer e termine com uma pergunta de uma palavra (ou nenhuma, se a sua última mensagem já terminou numa pergunta)"
       : passo === 2
@@ -1131,7 +1310,7 @@ async function gerarRetomada(leadId: string, passo: number, padrao: string): Pro
     const system = PROMPT.replaceAll("{canal}", "WhatsApp").replaceAll("{pagina}", "conversa pelo WhatsApp")
       .replaceAll("{imovel_contexto}", await contextoImovel(conv.contexto?.imovel)).replaceAll("{utm}", "{}")
       .replaceAll("{agora}", agoraBR()).replaceAll("{lead}", leadTxt).replaceAll("{saudacao}", "")
-      + `\n\n## Agora: retomada\n\nA pessoa parou de responder, provavelmente porque a vida interrompeu. Escreva só o ${passoTxt}. Uma ou duas frases, sem se apresentar de novo, sem "ficou alguma dúvida", sem "lembrete", sem cobrar resposta e sem falar de imposto. Não use ferramentas. Responda apenas com o texto exato da mensagem.`;
+      + `\n\n## Agora: retomada\n\nA pessoa parou de responder, provavelmente porque a vida interrompeu. Escreva só o ${passoTxt}. Uma ou duas frases, sem se apresentar de novo, sem "ficou alguma dúvida", sem "lembrete", sem cobrar resposta e sem falar de imposto. Não use ferramentas. Responda apenas com o texto exato da mensagem.${combinado}`;
     const messages = montarHistorico(hist ?? []);
     if (!messages.length) return padrao;
     if (messages[messages.length - 1].role === "assistant") messages.push({ role: "user", content: "(a pessoa ainda não respondeu)" });
@@ -1244,6 +1423,7 @@ async function turno(
     "Desculpa, me perdi aqui. Pode repetir o que você procura?";
   await sb.from("mensagens").insert({ conversa_id: ctx.conversaId, papel: "assistente", conteudo: resposta });
   await sb.from("conversas").update({ atualizado_em: new Date().toISOString() }).eq("id", ctx.conversaId);
+  try { await avancarEtapa(ctx); } catch (e) { console.error("etapa", e); }
 
   const blocos = juntarLinks(resposta.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean));
   let cartoes: unknown[] = blocos.map(() => []);
@@ -1289,6 +1469,12 @@ Deno.serve(async (req) => {
       const { data: t } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
       if (!t?.valor?.token || t.valor.token !== body.token) return json({ erro: "negado" }, 403, origin);
       return json(await simularConversa(body), 200, origin);
+    }
+    if (body.acao === "simular_turno") {
+      // One turn at a time through the real assistant, as a fake WhatsApp lead; nothing is sent. encerrar:true deletes it all.
+      const { data: t } = await sb.from("config").select("valor").eq("chave", "cron").maybeSingle();
+      if (!t?.valor?.token || t.valor.token !== body.token) return json({ erro: "negado" }, 403, origin);
+      return json(await simularTurno(body), 200, origin);
     }
     if (body.acao === "wa_templates") {
       // Submits or lists WhatsApp message templates. Same cron token as the follow-up tick.

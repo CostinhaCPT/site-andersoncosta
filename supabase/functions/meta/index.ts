@@ -61,7 +61,7 @@ async function esperarContainer(id: string, tentativas = 40) {
     if (s.status_code === "ERROR" || s.status_code === "EXPIRED") throw new ErroMeta(`A Meta não processou o arquivo: ${s.status ?? s.status_code}`);
     await dormir(3000);
   }
-  throw new ErroMeta("O vídeo demorou demais para processar na Meta. Tente de novo em alguns minutos.");
+  throw new ErroMeta("A mídia demorou demais para processar na Meta. Tente de novo em alguns minutos.");
 }
 
 async function publicarInstagram(c: Record<string, any>) {
@@ -74,10 +74,11 @@ async function publicarInstagram(c: Record<string, any>) {
     const filhos: string[] = [];
     for (const a of arqs.slice(0, 10)) {
       const f = await graph(`${ig}/media`, { metodo: "POST", params: a.tipo === "video" ? { media_type: "VIDEO", video_url: a.url, is_carousel_item: "true" } : { image_url: a.url, is_carousel_item: "true" } });
-      if (a.tipo === "video") await esperarContainer(f.id);
+      await esperarContainer(f.id);
       filhos.push(f.id);
     }
     container = (await graph(`${ig}/media`, { metodo: "POST", params: { media_type: "CAROUSEL", children: filhos.join(","), caption: legenda } })).id;
+    await esperarContainer(container);
   } else if (c.tipo === "story") {
     const a = arqs[0];
     container = (await graph(`${ig}/media`, { metodo: "POST", params: a.tipo === "video" ? { media_type: "STORIES", video_url: a.url } : { media_type: "STORIES", image_url: a.url } })).id;
@@ -87,6 +88,7 @@ async function publicarInstagram(c: Record<string, any>) {
     await esperarContainer(container);
   } else {
     container = (await graph(`${ig}/media`, { metodo: "POST", params: { image_url: arqs[0].url, caption: legenda } })).id;
+    await esperarContainer(container);
   }
   const pub = await graph(`${ig}/media_publish`, { metodo: "POST", params: { creation_id: container } });
   const info = await graph(pub.id, { params: { fields: "permalink" } }).catch(() => ({}));
