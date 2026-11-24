@@ -339,3 +339,74 @@
 .adm-ads tbody tr:hover { background: var(--papel); }
 
 .adm-legenda-previa { white-space: pre-line; font-size: 14px; line-height: 1.5; background: var(--papel); border-radius: 10px; padding: 12px 14px; margin: 0 0 8px; max-height: 260px; overflow-y: auto; }
+
+/* Curadoria inteligente */
+.cur { display: grid; gap: 18px; }
+.cur-form { display: flex; flex-direction: column; gap: 12px; background: #fff; border: 1px solid var(--linha); border-radius: 12px; padding: 16px; }
+.cur-bloco { display: flex; flex-direction: column; gap: 6px; }
+.cur-rot { font-size: .84rem; font-weight: 600; color: var(--texto-2); }
+.cur-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cur-chips button { border: 1px solid #cfcfcb; background: #fff; border-radius: 999px; padding: 8px 13px; min-height: 38px; font: 600 .84rem var(--corpo); color: var(--texto-2); cursor: pointer; }
+.cur-chips button.on { background: var(--preto); border-color: var(--preto); color: #fff; }
+.cur-linha { display: flex; gap: 10px; flex-wrap: wrap; }
+.cur-linha > .adm-campo { flex: 1 1 140px; min-width: 0; }
+.cur-linha > .cur-larga { flex: 2 1 220px; }
+.cur-dica { color: var(--texto-2); font-size: .76rem; font-weight: 400; }
+.cur-ok { color: #1e6b34; font-size: .76rem; }
+.cur-ref { display: flex; flex-direction: column; gap: 4px; }
+.cur-ref-linha { display: flex; gap: 6px; align-items: center; }
+.cur-ref-linha > input { flex: 1; min-width: 0; }
+.cur-ref-linha .adm-btn { min-height: 40px; padding: 8px 12px; font-size: .82rem; }
+.cur-min { display: flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--texto-2); white-space: nowrap; }
+.cur-min input { width: 56px; }
+.cur-x { border: 0; background: none; font-size: 1.3rem; line-height: 1; cursor: pointer; color: var(--texto-2); padding: 4px 6px; }
+.cur-opcoes { display: flex; flex-direction: column; gap: 4px; padding: 6px 0 2px; }
+.cur-opcoes button { text-align: left; border: 1px solid var(--linha); background: #fafaf8; border-radius: 8px; padding: 8px 10px; font: .8rem var(--corpo); cursor: pointer; }
+.cur-opcoes button:hover { border-color: var(--preto); }
+.cur-link { border: 0; background: none; padding: 4px 0; font: 600 .84rem var(--corpo); color: var(--preto); text-decoration: underline; cursor: pointer; align-self: flex-start; }
+.cur-criar { width: 100%; }
+.cur-res { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cur-passos { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; counter-reset: p; }
+.cur-passos li { counter-increment: p; font-size: .78rem; font-weight: 600; color: #9a9a96; padding: 6px 10px; border-radius: 999px; background: #f1f1ee; }
+.cur-passos li::before { content: counter(p) ". "; }
+.cur-passos li.agora { background: #fff8e6; color: #8a5a00; animation: cur-pulso 1.4s ease-in-out infinite; }
+.cur-passos li.feito { background: #e6f4ea; color: #1e6b34; }
+@keyframes cur-pulso { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .cur-passos li.agora { animation: none; } }
+.cur-perfil, .cur-resumo, .cur-novos, .cur-escolha { background: #fff; border: 1px solid var(--linha); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.cur-perfil p { margin: 0; line-height: 1.5; }
+.cur-perfil details summary, .cur-reserva summary { cursor: pointer; font-weight: 600; font-size: .86rem; }
+.cur-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.cur-tags span { font-size: .74rem; padding: 3px 9px; border-radius: 999px; background: #f1f1ee; color: var(--texto-2); }
+.cur-tags span.forte { background: #e8eefc; color: #1d3f8f; }
+.cur-tags span.evitar { background: #fde8e6; color: #b42318; }
+.cur-tags span.ok { background: #e6f4ea; color: #1e6b34; }
+.cur-foto-fraca { color: #b42318 !important; }
+.cur-foto-boa { color: #1e6b34 !important; }
+.cur-resumo { font-size: .88rem; display: block; }
+.cur-resumo .adm-aviso { margin-top: 10px; }
+.cur-novos h3 { margin: 0; font-size: 1rem; }
+.cur-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.cur-card { border: 1.5px solid var(--linha); border-radius: 10px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+.cur-card.on { border-color: var(--preto); box-shadow: 0 0 0 2px var(--preto) inset; }
+.cur-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+.cur-card-corpo { padding: 10px; display: flex; flex-direction: column; gap: 4px; font-size: .84rem; }
+.cur-card-corpo small { color: var(--texto-2); font-size: .74rem; }
+.cur-card-acoes { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.cur-card-acoes .adm-btn { min-height: 38px; padding: 8px 14px; }
+.cur-obs { margin: 0; font-size: .86rem; background: #f6f6f3; border-radius: 8px; padding: 10px 12px; }
+.cur-item { display: grid; grid-template-columns: 140px 1fr; gap: 12px; border-top: 1px solid var(--linha); padding-top: 12px; }
+.cur-item img { width: 140px; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; }
+@media (max-width: 560px) { .cur-item { grid-template-columns: 1fr; } .cur-item img { width: 100%; } }
+.cur-item-corpo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cur-item-corpo > small { color: var(--texto-2); }
+.cur-item-topo { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; font-size: .9rem; }
+.cur-item-btns { display: flex; gap: 2px; flex: none; }
+.cur-item-btns button { width: 32px; height: 32px; border: 1px solid var(--linha); background: #fff; border-radius: 8px; cursor: pointer; font-size: .9rem; }
+.cur-alertas { margin: 0; padding: 8px 12px 8px 26px; background: #fff8e6; border: 1px solid #f1d9a0; border-radius: 8px; font-size: .8rem; }
+.cur-nota { font-size: .78rem; color: #8a5a00; }
+.cur-reserva { display: flex; flex-direction: column; gap: 4px; }
+.cur-reserva button { display: block; width: 100%; text-align: left; border: 1px dashed var(--linha); background: #fff; border-radius: 8px; padding: 8px 10px; margin-top: 4px; font: .8rem var(--corpo); cursor: pointer; }
+.cur-pronta { display: flex; flex-direction: column; gap: 8px; background: #e6f4ea; border-radius: 10px; padding: 12px 14px; }
+.cur-copiar { display: flex; gap: 6px; }
+.cur-copiar input { flex: 1; min-width: 0; font-size: .86rem; }
