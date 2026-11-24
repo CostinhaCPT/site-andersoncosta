@@ -28,7 +28,12 @@ const json = (b: unknown, s: number, o: string | null) =>
   new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json", ...cors(o) } });
 
 const slugify = (s: string) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-const limpar = (s: string) => String(s ?? "").replace(/\s*[—–]\s*/g, ", ").replace(/!/g, ".").trim();
+// Preço sempre completo (R$ 1.100.000), nunca "R$ 1,1 milhão" ou "R$ 625 mil"
+const precoCheio = (s: string) => s.replace(/R\$\s?(\d+(?:[.,]\d+)?)\s?(milh[ãa]o|milh[õo]es|mil)\b/gi, (_m, n, u) => {
+  const v = Number(String(n).replace(/\./g, "").replace(",", ".")) * (/mil$/i.test(u) && !/milh/i.test(u) ? 1e3 : 1e6);
+  return `R$ ${Math.round(v).toLocaleString("pt-BR")}`;
+});
+const limpar = (s: string) => precoCheio(String(s ?? "").replace(/\s*[—–]\s*/g, ", ").replace(/!/g, ".").trim());
 const comTempo = <T>(p: Promise<T>, ms: number, padrao: T) => Promise.race([p, new Promise<T>((r) => setTimeout(() => r(padrao), ms))]);
 async function emLotes<T, R>(itens: T[], n: number, f: (x: T) => Promise<R>): Promise<R[]> {
   const out: R[] = [];
@@ -531,7 +536,7 @@ Regras:
 - Tempo de deslocamento: diga "cerca de X minutos de carro" e só se veio na ficha.
 - Prefira imóveis com fotos boas. Não escolha dois imóveis praticamente iguais.
 - Inclua os novos do Rafael aprovados se combinarem.
-- Sem travessão, sem exclamação, sem emoji, sem clichês (imperdível, oportunidade única, sonho, espetacular). Português do Brasil, frases curtas, tom de quem conhece os imóveis.`,
+- Sem travessão, sem exclamação, sem emoji, sem clichês (imperdível, oportunidade única, sonho, espetacular). Português do Brasil, frases curtas, tom de quem conhece os imóveis. Preço sempre completo, como R$ 1.100.000; nunca abreviado em mil ou milhão.`,
     `Cliente: ${nome}\nPerfil: ${JSON.stringify(body.perfil ?? {})}\n\nFichas:\n${JSON.stringify(fichas)}`,
     FERR_ESCOLHA, 3000,
   );
@@ -541,12 +546,172 @@ Regras:
   return r;
 }
 
-// ---------- Etapa 4: criar a página ----------
+// ---------- Por que escolhi (um imóvel) ----------
+const FERR_PORQUE = {
+  name: "porque",
+  description: "Texto do por que escolhi para um imóvel.",
+  input_schema: {
+    type: "object",
+    properties: {
+      porque: { type: "string", description: "Até 240 caracteres. Só pontos positivos e fatos, ligados ao que o cliente pediu." },
+      nota_anderson: { type: "string", description: "Só para o Anderson: o que confirmar antes de enviar. Vazio se nada." },
+    },
+    required: ["porque"],
+  },
+};
+async function porque(body: Record<string, any>) {
+  const c = body.imovel ?? {};
+  const ficha = { ref: c.codigo ?? c.imov, titulo: c.titulo, tipo: c.tipo, bairro: c.bairro, cidade: c.cidade, preco: c.preco, area: c.area, quartos: c.quartos, suites: c.suites, vagas: c.vagas, situacao: c.situacao, deslocamento: c.desloc, pontos_fortes_para_o_cliente: c.bons, destaques: c.destaques, descricao: c.descricao };
+  const r = await claude(
+    `Você é a curadora de Anderson Costa, corretor em Jaraguá do Sul (CRECI SC 68594). O Anderson escolheu este imóvel para a curadoria do cliente. Escreva o "por que escolhi".
+Regras: use somente os fatos da ficha; nunca invente metragem, distância, sol, vista, material, escola ou vizinhança. Só pontos positivos ligados ao que o cliente pediu; o que precisar confirmar vai em nota_anderson. Tempo de carro só se veio na ficha ("cerca de X minutos de carro"). Sem travessão, sem exclamação, sem emoji, sem clichês. Português do Brasil, frases curtas. Preço sempre completo, como R$ 1.100.000; nunca abreviado em mil ou milhão.`,
+    `Cliente: ${String(body.nome || "").split(/\s+/)[0]}\nPerfil: ${JSON.stringify(body.perfil ?? {})}\n\nFicha:\n${JSON.stringify(ficha)}`,
+    FERR_PORQUE, 800,
+  );
+  return { porque: limpar(r.porque), nota_anderson: limpar(r.nota_anderson ?? "") };
+}
+
+// ---------- Imóvel do Rafael entra no site do Anderson ----------
+const FERR_TEXTOS = {
+  name: "textos_imovel",
+  description: "Dados e textos do imóvel para o site do Anderson.",
+  input_schema: {
+    type: "object",
+    properties: {
+      titulo: { type: "string", description: "Tipo + diferencial concreto + bairro, até 70 caracteres. Sem preço e sem código." },
+      resumo: { type: "string", description: "Uma frase de até 110 caracteres com o que o imóvel tem de mais útil para quem vai morar." },
+      descricao: { type: "string", description: "2 ou 3 parágrafos curtos separados por linha em branco, só com fatos do anúncio." },
+      destaques: { type: "array", items: { type: "string" }, description: "3 a 5 fatos de até 6 palavras." },
+      perfil_ideal: { type: "string" },
+      suites: { type: "integer", description: "Número de suítes citado no anúncio. 0 se não citado." },
+      vagas: { type: "integer", description: "Vagas de garagem citadas. 0 se não citado." },
+      terreno: { type: "number", description: "Área do terreno em m² se citada. 0 se não." },
+      mobiliado: { type: "boolean" },
+    },
+    required: ["titulo", "resumo", "descricao", "destaques", "perfil_ideal", "suites", "vagas"],
+  },
+};
+const familiaTipo = (t: string) => ({ sobrado: "casa", cobertura: "apartamento" } as Record<string, string>)[t] ?? t;
+async function cadastrarNovo(n: any, slugLp: string) {
+  // já existe no site? (pelo código do Rafael ou pelo mesmo bairro, tipo e área)
+  const { data: porImov } = await adm.from("imoveis").select("codigo,status").contains("campos", { imov: n.imov }).limit(1);
+  if (porImov?.[0]) return { imov: n.imov, codigo: porImov[0].codigo, existente: true, fotos: 0 };
+  const { data: mesmos } = await adm.from("imoveis").select("codigo,tipo,bairro,area,status,campos").ilike("bairro", n.bairro).neq("status", "vendido").limit(200);
+  const igual = (mesmos ?? []).find((m) => familiaTipo(m.tipo) === familiaTipo(n.tipo) && n.area && m.area && Math.abs(Number(m.area) - Number(n.area)) <= 1);
+  if (igual) {
+    if (!igual.campos?.imov) await adm.from("imoveis").update({ campos: { ...(igual.campos ?? {}), imov: n.imov } }).eq("codigo", igual.codigo);
+    return { imov: n.imov, codigo: igual.codigo, existente: true, fotos: 0 };
+  }
+  const t = await claude(
+    `Você é a copywriter de Anderson Costa, corretor em Jaraguá do Sul (CRECI SC 68594). Escreva os textos da página deste imóvel no site dele a partir do anúncio. Use somente os fatos do anúncio, nunca invente. Não cite outro corretor, imobiliária, telefone ou site. Sem travessão, sem exclamação, sem emoji, sem clichês (imperdível, oportunidade única, sonho, espetacular). Fatos vencem adjetivos. Português do Brasil, frases curtas. Preço sempre completo, como R$ 1.100.000; nunca abreviado em mil ou milhão.`,
+    `Anúncio:\nTítulo: ${n.titulo}\nTipo: ${n.tipo}\nBairro: ${n.bairro}, ${n.cidade}\nÁrea: ${n.area} m²\nQuartos: ${n.quartos}\nBanheiros: ${n.banheiros}\nPreço: ${n.preco}\nDescrição: ${n.descricao}`,
+    FERR_TEXTOS, 1500,
+  );
+  const { data: ult } = await adm.from("imoveis").select("codigo").like("codigo", "AC-00%").order("codigo", { ascending: false }).limit(1);
+  const codigo = `AC-${String(Number(String(ult?.[0]?.codigo ?? "AC-0000").slice(3)) + 1).padStart(4, "0")}`;
+  const titulo = limpar(t.titulo);
+  const { error } = await adm.from("imoveis").insert({
+    codigo, slug: `${slugify(titulo).slice(0, 70)}-${slugify(n.bairro)}-${slugify(n.cidade)}`, status: "rascunho",
+    titulo, resumo: limpar(t.resumo), descricao: limpar(t.descricao), destaques: (t.destaques ?? []).map(limpar).slice(0, 5), atencao: [],
+    perfil_ideal: limpar(t.perfil_ideal ?? ""), tipo: n.tipo, bairro: n.bairro, cidade: n.cidade,
+    preco: n.preco, preco_visivel: true, area: n.area, terreno: Number(t.terreno) || null, quartos: n.quartos ?? 0, suites: Number(t.suites) || 0,
+    banheiros: n.banheiros ?? 0, vagas: Number(t.vagas) || 0, fotos: [],
+    origem: "sartori", codigo_parceiro: n.imov, aceita_permuta: n.permuta ? true : null, visita_exige_proprietario: true,
+    campos: { imov: n.imov, parceria: "Rafael Sartori", via_curadoria: slugLp, fotos_sartori: (n.fotos_lista ?? []).slice(0, 15), mobiliado: t.mobiliado ?? null, descricao_sartori: n.descricao },
+  });
+  if (error) throw new Error(`cadastro ${n.imov}: ${error.message}`);
+  return { imov: n.imov, codigo, existente: false, fotos: Math.min(15, (n.fotos_lista ?? []).length) };
+}
+
+// Foto do Rafael: decodifica (webp), reduz para 1200 px e cobre a marca dele (centro) com o selo Anderson Costa.
+// Uma foto por chamada para caber no limite de processamento da função; o admin chama em sequência.
+let SELO: any = null;
+function desfocar(img: any, r: number) {
+  const w = img.width, h = img.height, px = img.bitmap as Uint8ClampedArray, tmp = new Float32Array(px.length);
+  const passada = (src: ArrayLike<number>, dst: Float32Array | Uint8ClampedArray, horizontal: boolean) => {
+    const n = horizontal ? w : h, linhas = horizontal ? h : w;
+    for (let l = 0; l < linhas; l++) for (let c = 0; c < 4; c++) {
+      const idx = (i: number) => ((horizontal ? l * w + i : i * w + l) * 4 + c);
+      let soma = 0;
+      for (let i = -r; i <= r; i++) soma += src[idx(Math.min(n - 1, Math.max(0, i)))];
+      for (let i = 0; i < n; i++) {
+        dst[idx(i)] = soma / (2 * r + 1);
+        soma += src[idx(Math.min(n - 1, i + r + 1))] - src[idx(Math.max(0, i - r))];
+      }
+    }
+  };
+  for (let k = 0; k < 3; k++) { passada(px, tmp, true); passada(tmp, px, false); }
+  return img;
+}
+async function fotoSartori(body: Record<string, any>) {
+  const { Image, decode } = await import("https://deno.land/x/imagescript@1.3.0/mod.ts");
+  const { data: im } = await adm.from("imoveis").select("id,codigo,status,fotos,campos").eq("codigo", body.codigo).single();
+  if (!im) throw new Error("imóvel não encontrado");
+  const lista: string[] = im.campos?.fotos_sartori ?? [];
+  const i = Number(body.i) || 0;
+  let url: string | null = null;
+  if (lista[i]) {
+    const r = await fetch(lista[i], { headers: { "user-agent": UA } });
+    if (!r.ok) throw new Error(`foto ${r.status}`);
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    let img: any;
+    if (bytes[0] === 0x52 && bytes[8] === 0x57) {
+      const { default: decodeWebp } = await import("npm:@jsquash/webp@1.4.0/decode.js");
+      const d = await decodeWebp(bytes.buffer);
+      img = new Image(d.width, d.height);
+      img.bitmap.set(d.data);
+    } else img = await decode(bytes);
+    if (img.width >= img.height && img.width > 1200) img = img.resize(1200, Image.RESIZE_AUTO);
+    else if (img.height > img.width && img.height > 1200) img = img.resize(Image.RESIZE_AUTO, 1200);
+    if (!SELO) SELO = await decode(new Uint8Array(await (await fetch(`${SITE}/marca/selo-wordmark.png`)).arrayBuffer()));
+    const W = img.width, H = img.height, S = Math.min(W, H);
+    const bw = Math.round(0.36 * S), bh = Math.round(bw / 2.5);
+    const x = Math.round((W - bw) / 2), y = Math.round((H - bh) / 2);
+    const vidro = desfocar(img.clone().crop(x, y, bw, bh), Math.max(6, Math.round(bh / 9)));
+    vidro.composite(new Image(bw, bh).fill(Image.rgbaToColor(12, 12, 12, 120)), 0, 0).roundCorners(Math.round(bh * 0.22));
+    img.composite(vidro, x, y);
+    const m = SELO.clone().resize(Math.round(bw * 0.74), Image.RESIZE_AUTO);
+    img.composite(m, Math.round((W - m.width) / 2), Math.round((H - m.height) / 2));
+    const mini = img.clone().resize(W >= H ? 720 : Image.RESIZE_AUTO, W >= H ? Image.RESIZE_AUTO : 720);
+    const destino = `sartori/${im.codigo.toLowerCase()}/${String(i + 1).padStart(2, "0")}`;
+    const a = await adm.storage.from("imoveis").upload(`${destino}.jpg`, await img.encodeJPEG(70), { contentType: "image/jpeg", upsert: true, cacheControl: "604800" });
+    const b = await adm.storage.from("imoveis").upload(`${destino}-p.jpg`, await mini.encodeJPEG(66), { contentType: "image/jpeg", upsert: true, cacheControl: "604800" });
+    if (a.error || b.error) throw new Error((a.error ?? b.error)!.message);
+    url = `${URL_SB}/storage/v1/object/public/imoveis/${destino}.jpg`;
+  }
+  const { data: atual } = await adm.from("imoveis").select("fotos,campos,status").eq("id", im.id).single();
+  const fotos: string[] = [...(atual?.fotos ?? [])];
+  if (url && !fotos.includes(url)) fotos.push(url);
+  fotos.sort();
+  const fim = i >= lista.length - 1 || body.final;
+  const upd: Record<string, unknown> = { fotos, atualizado_em: new Date().toISOString() };
+  if (fim && fotos.length) { upd.status = "disponivel"; upd.campos = { ...(atual?.campos ?? {}), fotos_seladas: new Date().toISOString() }; }
+  await adm.from("imoveis").update(upd).eq("id", im.id);
+  return { ok: true, fotos: fotos.length, publicado: !!upd.status };
+}
+
+// ---------- Etapa 4: criar e atualizar a página ----------
 const novoId = () => Math.random().toString(36).slice(2, 10);
 function sufixo(n = 4) {
   const a = "abcdefghjkmnpqrstuvwxyz23456789"; let s = "";
   for (const x of crypto.getRandomValues(new Uint8Array(n))) s += a[x % a.length];
   return s;
+}
+// imóveis do Rafael aprovados viram imóveis do site (AC-), e a página usa o código do site
+async function resolverItens(body: Record<string, any>, slugLp: string) {
+  const novosPorRef: Record<string, any> = Object.fromEntries((body.novos_aprovados ?? []).map((n: any) => [n.imov, n]));
+  const cadastrados: any[] = [];
+  const itens = [];
+  for (const it of body.itens ?? []) {
+    let codigo = it.ref;
+    if (novosPorRef[it.ref]) {
+      const c = await cadastrarNovo(novosPorRef[it.ref], slugLp);
+      cadastrados.push(c);
+      codigo = c.codigo;
+    }
+    itens.push({ codigo, porque: it.porque ?? "", atencao: "", sem_atencao: true });
+  }
+  return { itens, cadastrados };
 }
 async function criar(body: Record<string, any>) {
   const primeiro = String(body.nome || "").trim().split(/\s+/)[0] || "cliente";
@@ -558,13 +723,8 @@ async function criar(body: Record<string, any>) {
     if (!data) { slug = s; break; }
   }
   if (!slug) throw new Error("não consegui gerar o link");
-  const novosPorRef: Record<string, any> = Object.fromEntries((body.novos_aprovados ?? []).map((n: any) => [n.imov, n]));
-  const itens = (body.itens ?? []).map((it: any) => {
-    const n = novosPorRef[it.ref];
-    if (n) return { avulso: { titulo: n.titulo, bairro: n.bairro, cidade: n.cidade, preco: n.preco, area: n.area, quartos: n.quartos, suites: 0, vagas: 0, fotos: n.fotos_lista ?? [], fonte: n.link }, porque: it.porque, atencao: "", sem_atencao: true };
-    return { codigo: it.ref, porque: it.porque, atencao: "", sem_atencao: true };
-  });
-  if (!itens.length) throw new Error("nenhum imóvel escolhido");
+  if (!(body.itens ?? []).length) throw new Error("nenhum imóvel escolhido");
+  const { itens, cadastrados } = await resolverItens(body, slug);
   const hero = {
     eyebrow: "Curadoria Compra Segura",
     titulo: body.titulo || `${primeiro}, separei estes imóveis para vocês`,
@@ -583,23 +743,18 @@ async function criar(body: Record<string, any>) {
     expira_em: new Date(Date.now() + 60 * 864e5).toISOString(),
   }).select("id,slug").single();
   if (error) throw new Error(error.message);
-  // novos aprovados entram como rascunho na carteira (para revisar e publicar depois no site)
-  const salvos: string[] = [];
-  for (const n of body.novos_aprovados ?? []) {
-    const { data: ja } = await adm.from("imoveis").select("codigo").contains("campos", { imov: n.imov }).maybeSingle();
-    if (ja) continue;
-    const { data: ult } = await adm.from("imoveis").select("codigo").like("codigo", "AC-00%").order("codigo", { ascending: false }).limit(1);
-    const prox = `AC-${String(Number(String(ult?.[0]?.codigo ?? "AC-0000").slice(3)) + 1).padStart(4, "0")}`;
-    const { error: e2 } = await adm.from("imoveis").insert({
-      codigo: prox, slug: `${slugify(n.tipo)}-${slugify(n.bairro)}-${slugify(n.cidade)}-${prox.toLowerCase()}`, status: "rascunho",
-      titulo: n.titulo, resumo: String(n.descricao ?? "").slice(0, 160), descricao: n.descricao ?? "", tipo: n.tipo, bairro: n.bairro, cidade: n.cidade,
-      preco: n.preco, preco_visivel: true, area: n.area, quartos: n.quartos ?? 0, banheiros: n.banheiros ?? 0, fotos: n.fotos_lista ?? [],
-      origem: "sartori", codigo_parceiro: n.imov, aceita_permuta: n.permuta ? true : null, visita_exige_proprietario: true,
-      campos: { imov: n.imov, link_sartori: n.link, parceria: "Rafael Sartori", via_curadoria: data.slug },
-    });
-    if (!e2) salvos.push(prox);
-  }
-  return { id: data.id, slug: data.slug, link: `${SITE}/curadoria/${data.slug}`, novos_salvos: salvos };
+  return { id: data.id, slug: data.slug, link: `${SITE}/curadoria/${data.slug}`, cadastrados, troca: Object.fromEntries(cadastrados.map((c) => [c.imov, c.codigo])) };
+}
+// Depois de criada: salva título, subtítulo, ordem, textos e imóveis da curadoria
+async function atualizar(body: Record<string, any>) {
+  const { data: lp } = await adm.from("lps").select("id,slug,hero,blocos").eq("id", body.id).single();
+  if (!lp) throw new Error("página não encontrada");
+  const { itens, cadastrados } = await resolverItens(body, lp.slug);
+  const blocos = (lp.blocos ?? []).map((b: any) => (b.tipo === "imoveis" ? { ...b, dados: { ...b.dados, intro: body.intro ?? b.dados?.intro ?? "", itens } } : b));
+  const hero = { ...(lp.hero ?? {}), titulo: body.titulo || lp.hero?.titulo, subtitulo: body.subtitulo ?? lp.hero?.subtitulo };
+  const { error } = await adm.from("lps").update({ hero, blocos, atualizado_em: new Date().toISOString() }).eq("id", lp.id);
+  if (error) throw new Error(error.message);
+  return { ok: true, cadastrados, troca: Object.fromEntries(cadastrados.map((c) => [c.imov, c.codigo])) };
 }
 
 // ---------- servidor ----------
@@ -628,6 +783,9 @@ Deno.serve(async (req) => {
     if (body.acao === "candidatos") return json(await candidatos(body), 200, origin);
     if (body.acao === "escolher") return json(await escolher(body), 200, origin);
     if (body.acao === "criar") return json(await criar(body), 200, origin);
+    if (body.acao === "atualizar") return json(await atualizar(body), 200, origin);
+    if (body.acao === "porque") return json(await porque(body), 200, origin);
+    if (body.acao === "foto_sartori") return json(await fotoSartori(body), 200, origin);
     if (body.acao === "salvar_lugar") {
       const c = await geoCache();
       if (body.nome && Number(body.lat) && Number(body.lon)) { c[slugify(body.nome)] = { lat: Number(body.lat), lon: Number(body.lon) }; geoMudou = true; await salvarGeo(); }
