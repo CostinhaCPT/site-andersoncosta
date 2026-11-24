@@ -410,3 +410,6 @@
 .cur-pronta { display: flex; flex-direction: column; gap: 8px; background: #e6f4ea; border-radius: 10px; padding: 12px 14px; }
 .cur-copiar { display: flex; gap: 6px; }
 .cur-copiar input { flex: 1; min-width: 0; font-size: .86rem; }
+.cur-porque-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .84rem; font-weight: 600; color: var(--texto-2); }
+.cur-porque-topo .cur-link { padding: 0; }
+.cur-porque { width: 100%; }
