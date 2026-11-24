@@ -32,6 +32,10 @@ export default function BuscaCuradoria({ im, aoAbrir }) {
   const [escolha, setEscolha] = useState(null);
   const [criada, setCriada] = useState(null);
   const [ocupado, setOcupado] = useState(false);
+  const [troca, setTroca] = useState({}); // IMOV-xxxx do Rafael -> código no seu site
+  const [fotosMsg, setFotosMsg] = useState('');
+  const [escrevendo, setEscrevendo] = useState(null);
+  const [salvo, setSalvo] = useState('');
 
   useEffect(() => {
     sb().from('leads').select('id,nome,whatsapp,etapa').not('etapa', 'in', '(venda,perdido)').order('ultima_atividade', { ascending: false, nullsFirst: false }).limit(300)
@@ -93,17 +97,52 @@ export default function BuscaCuradoria({ im, aoAbrir }) {
     } catch (e) { setErro(String(e.message || e)); }
     setOcupado(false);
   }
+  // Imóveis do Rafael que entraram no seu site: troca o código na tela e prepara as fotos com o seu selo
+  async function aposSalvar(r) {
+    if (r.troca && Object.keys(r.troca).length) {
+      setTroca((t) => ({ ...t, ...r.troca }));
+      setEscolha((e) => ({ ...e, itens: e.itens.map((it) => (r.troca[it.ref] ? { ...it, ref: r.troca[it.ref] } : it)) }));
+    }
+    for (const c of (r.cadastrados || []).filter((x) => !x.existente && x.fotos > 0)) {
+      for (let i = 0; i < c.fotos; i++) {
+        setFotosMsg(`Preparando as fotos de ${c.codigo} com o seu selo: ${i + 1} de ${c.fotos}`);
+        try { await call({ acao: 'foto_sartori', codigo: c.codigo, i, final: i === c.fotos - 1 }); } catch (e) { /* segue para a próxima foto */ }
+      }
+    }
+    const novosNoSite = (r.cadastrados || []).filter((x) => !x.existente).map((x) => x.codigo);
+    setFotosMsg(novosNoSite.length ? `${novosNoSite.join(', ')} ${novosNoSite.length > 1 ? 'entraram' : 'entrou'} no seu site (aparece na próxima publicação). Revise os textos em Imóveis.` : '');
+  }
+  const itensParaSalvar = () => escolha.itens.map((it) => ({ ...it, ref: troca[it.ref] || it.ref }));
+  const novosAprovados = () => (cands.novos || []).filter((n) => aprovados.includes(n.imov) && !troca[n.imov]);
   async function criarPagina(publicar) {
-    setOcupado(true); setErro('');
+    setOcupado(true); setErro(''); setSalvo('');
     try {
-      const novos = (cands.novos || []).filter((n) => aprovados.includes(n.imov));
       const r = await call({
         acao: 'criar', nome: f.nome, lead_id: f.lead_id || null, filtros: filtros(), perfil: perfil.perfil, publicar,
-        titulo: escolha.titulo, subtitulo: escolha.subtitulo, intro: escolha.intro, itens: escolha.itens, novos_aprovados: novos,
+        titulo: escolha.titulo, subtitulo: escolha.subtitulo, intro: escolha.intro, itens: itensParaSalvar(), novos_aprovados: novosAprovados(),
       });
       setCriada(r);
+      await aposSalvar(r);
     } catch (e) { setErro(String(e.message || e)); }
     setOcupado(false);
+  }
+  async function salvarAlteracoes() {
+    setOcupado(true); setErro(''); setSalvo('');
+    try {
+      const r = await call({ acao: 'atualizar', id: criada.id, titulo: escolha.titulo, subtitulo: escolha.subtitulo, intro: escolha.intro, itens: itensParaSalvar(), novos_aprovados: novosAprovados() });
+      await aposSalvar(r);
+      setSalvo('Alterações salvas na página.');
+    } catch (e) { setErro(String(e.message || e)); }
+    setOcupado(false);
+  }
+  async function escreverPorque(k) {
+    const it = escolha.itens[k];
+    setEscrevendo(k); setErro('');
+    try {
+      const r = await call({ acao: 'porque', nome: f.nome, perfil: perfil.perfil, imovel: porRef[it.ref] || {} });
+      setItem(k, { porque: r.porque, nota_anderson: r.nota_anderson });
+    } catch (e) { setErro(String(e.message || e)); }
+    setEscrevendo(null);
   }
   async function abrirEditor() {
     const { data } = await sb().from('lps').select('*, leads(id,nome,whatsapp)').eq('id', criada.id).single();
@@ -113,15 +152,15 @@ export default function BuscaCuradoria({ im, aoAbrir }) {
   const porRef = useMemo(() => {
     const m = {};
     for (const c of cands?.candidatos || []) m[c.codigo] = c;
-    for (const n of cands?.novos || []) m[n.imov] = { ...n, codigo: n.imov, novo: true };
+    for (const n of cands?.novos || []) { m[n.imov] = { ...n, codigo: n.imov, novo: true }; if (troca[n.imov]) m[troca[n.imov]] = { ...n, codigo: troca[n.imov], novo: true, noSite: true }; }
     return m;
-  }, [cands]);
+  }, [cands, troca]);
   const setItem = (k, v) => setEscolha((e) => ({ ...e, itens: e.itens.map((x, i) => (i === k ? { ...x, ...v } : x)) }));
   const mover = (k, d) => setEscolha((e) => { const it = [...e.itens]; const j = k + d; if (j < 0 || j >= it.length) return e; [it[k], it[j]] = [it[j], it[k]]; return { ...e, itens: it }; });
   const remover = (k) => setEscolha((e) => ({ ...e, itens: e.itens.filter((_, i) => i !== k) }));
   const adicionar = (ref) => setEscolha((e) => ({ ...e, itens: [...e.itens, { ref, porque: '', nota_anderson: '' }] }));
   const escolhidos = new Set((escolha?.itens || []).map((i) => i.ref));
-  const reserva = [...(cands?.candidatos || []).filter((c) => !c.conferencia?.indisponivel).map((c) => c.codigo), ...aprovados].filter((r) => !escolhidos.has(r));
+  const reserva = [...(cands?.candidatos || []).filter((c) => !c.conferencia?.indisponivel).map((c) => c.codigo), ...aprovados.map((a) => troca[a] || a)].filter((r) => !escolhidos.has(r));
 
   return (
     <div className="cur">
@@ -236,7 +275,7 @@ export default function BuscaCuradoria({ im, aoAbrir }) {
           {passo === 2 && cands?.novos?.length > 0 && !escolha && (
             <div className="cur-novos">
               <h3>O Rafael tem {cands.novos.length} {cands.novos.length === 1 ? 'imóvel' : 'imóveis'} no perfil que não estão no seu site</h3>
-              <p className="adm-sub">Aprove os que podem entrar nesta curadoria. Eles também ficam salvos como rascunho na sua carteira.</p>
+              <p className="adm-sub">Aprove os que podem entrar nesta curadoria. Ao criar a página, eles entram no seu site com o seu código e o seu selo nas fotos (só se ainda não estiverem lá). O cliente nunca vê o site do Rafael.</p>
               <div className="cur-grade">
                 {cands.novos.map((n) => {
                   const on = aprovados.includes(n.imov);
@@ -274,7 +313,7 @@ export default function BuscaCuradoria({ im, aoAbrir }) {
                     {c.foto && <img src={foto(c.foto)} alt="" loading="lazy" />}
                     <div className="cur-item-corpo">
                       <div className="cur-item-topo">
-                        <span><b>{k + 1}. {it.ref}</b> · {c.bairro} · {brl(c.preco)}{c.novo && <span className="adm-tag t-voce">novo do Rafael</span>}</span>
+                        <span><b>{k + 1}. {it.ref}</b> · {c.bairro} · {brl(c.preco)}{c.novo && <span className="adm-tag t-voce">{c.noSite ? 'entrou no seu site' : 'novo do Rafael, entra no seu site'}</span>}</span>
                         <span className="cur-item-btns">
                           <button onClick={() => mover(k, -1)} aria-label="Subir">↑</button>
                           <button onClick={() => mover(k, 1)} aria-label="Descer">↓</button>
@@ -296,7 +335,11 @@ export default function BuscaCuradoria({ im, aoAbrir }) {
                           {cf.erro && <li>Não consegui conferir em {cf.fonte} agora ({cf.erro})</li>}
                         </ul>
                       )}
-                      <label className="adm-campo"><span>Por que escolhi (vai para o cliente)</span><textarea rows={3} value={it.porque} onChange={(e) => setItem(k, { porque: e.target.value })} /></label>
+                      <div className="cur-porque-topo">
+                        <span>Por que escolhi (vai para o cliente)</span>
+                        <button type="button" className="cur-link" onClick={() => escreverPorque(k)} disabled={escrevendo !== null}>{escrevendo === k ? 'Escrevendo…' : it.porque ? 'Reescrever com IA' : 'Escrever com IA'}</button>
+                      </div>
+                      <textarea className="cur-porque" rows={3} value={it.porque} onChange={(e) => setItem(k, { porque: e.target.value })} placeholder="Clique em Escrever com IA ou escreva você mesmo." />
                       {it.nota_anderson && <small className="cur-nota">Para você: {it.nota_anderson}</small>}
                     </div>
                   </div>
@@ -315,10 +358,13 @@ export default function BuscaCuradoria({ im, aoAbrir }) {
                 </div>
               ) : (
                 <div className="cur-pronta">
-                  <b>Página criada{criada.novos_salvos?.length ? ` · ${criada.novos_salvos.join(', ')} salvos como rascunho na carteira` : ''}</b>
+                  <b>Página criada. Pode continuar editando aqui e clicar em Salvar alterações.</b>
+                  {fotosMsg && <small>{fotosMsg}</small>}
+                  {salvo && <small className="cur-ok">{salvo}</small>}
                   <div className="cur-copiar"><input readOnly value={criada.link} onFocus={(e) => e.target.select()} /><button className="adm-btn" onClick={() => navigator.clipboard?.writeText(criada.link)}>Copiar</button></div>
                   <div className="adm-acoes" style={{ justifyContent: 'flex-start' }}>
-                    <button className="adm-btn adm-primario" onClick={abrirEditor}>Abrir no editor</button>
+                    <button className="adm-btn adm-primario" onClick={salvarAlteracoes} disabled={ocupado || !escolha.itens.length}>{ocupado ? 'Salvando…' : 'Salvar alterações'}</button>
+                    <button className="adm-btn" onClick={abrirEditor} disabled={ocupado}>Abrir no editor completo</button>
                   </div>
                   <small className="cur-dica">Se criou como rascunho, publique no editor para o link funcionar.</small>
                 </div>
