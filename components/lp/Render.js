@@ -212,7 +212,7 @@ function CardLp({ it, i, reacoes, previa, aoEvento, nome }) {
         <div className="specs">{dados.area ? <span>{dados.area} m²</span> : null}{dados.quartos > 0 && <span>{dados.quartos} quartos</span>}{dados.suites > 0 && <span>{dados.suites} suíte{dados.suites > 1 ? 's' : ''}</span>}{dados.vagas > 0 && <span>{dados.vagas} vaga{dados.vagas > 1 ? 's' : ''}</span>}</div>
         <b className="lp-preco">{dados.precoVisivel && dados.preco ? brl(dados.preco) : 'Preço sob consulta'}</b>
         {it.porque && <p className="lp-porque"><b>Por que escolhi:</b> {it.porque}</p>}
-        {(it.atencao || (i?.atencao || [])[0]) && <p className="lp-atencao-curta"><b>Atenção:</b> {it.atencao || i.atencao[0]}</p>}
+        {(it.atencao || (!it.sem_atencao && (i?.atencao || [])[0])) && <p className="lp-atencao-curta"><b>Atenção:</b> {it.atencao || i.atencao[0]}</p>}
         {publicado && <a className="lp-link" href={`/imovel/${i.slug}/`} target="_blank" rel="noopener" onClick={() => !previa && aoEvento('viu_imovel', { codigo: i.codigo })}>Ver fotos e detalhes</a>}
         {reacoes && (
           <div className="lp-reacoes">
