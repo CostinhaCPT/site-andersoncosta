@@ -15,6 +15,8 @@ AddType application/manifest+json .webmanifest
 RewriteEngine On
 # Pretty landing page links: /lp/abc123 -> /lp/?c=abc123
 RewriteRule ^lp/([a-z0-9-]{4,})/?$ /lp/?c=$1 [R=302,L]
+# Curadoria inteligente: /curadoria/ricardo-k7p2 -> /lp/?c=ricardo-k7p2 (a página /curadoria/ continua normal)
+RewriteRule ^curadoria/([a-z0-9]+-[a-z0-9]{4})/?$ /lp/?c=$1 [R=302,L]
 
 # Endereço único: www vai para o domínio principal
 RewriteCond %{HTTP_HOST} ^www\.andersoncostaimoveis\.com\.br$ [NC]
