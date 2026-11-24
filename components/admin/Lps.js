@@ -8,9 +8,11 @@ import { BLOCOS, MODELOS, novoBloco, novoId, slugAleatorio } from '@/lib/lp';
 import { mapearImovel } from '@/lib/mapear.mjs';
 import { SITE } from '@/lib/site';
 import Render from '@/components/lp/Render';
+import BuscaCuradoria from './BuscaCuradoria';
 
 const COLS_IM = 'codigo,slug,status,titulo,resumo,descricao,destaques,atencao,tipo,cidade,bairro,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,condominio,iptu,aceita_permuta,aceita_financiamento,fotos,video,ref_m2,ref_amostra';
-const linkDe = (slug) => `${SITE.dominio}/lp/${slug}`;
+// Curadorias da busca inteligente têm link com o nome do cliente (/curadoria/ricardo-k7p2); as demais seguem em /lp/
+const linkDe = (slug, tipo) => `${SITE.dominio}/${tipo === 'curadoria' && /^[a-z0-9]+-[a-z0-9]{4}$/.test(slug || '') ? 'curadoria' : 'lp'}/${slug}`;
 
 function useImoveis() {
   const [lista, setLista] = useState([]);
@@ -37,6 +39,7 @@ export default function Lps() {
   const [erro, setErro] = useState('');
   const [editando, setEditando] = useState(null);
   const [criando, setCriando] = useState(null);
+  const [aba, setAba] = useState('paginas');
   const im = useImoveis();
 
   const carregar = useCallback(async () => {
@@ -55,6 +58,11 @@ export default function Lps() {
       <div className="adm-cabeca">
         <div><h1>Landing pages</h1><p className="adm-sub">Curadorias para leads e páginas para anúncios.</p></div>
       </div>
+      <div className="adm-subabas">
+        <button className={aba === 'paginas' ? 'on' : ''} onClick={() => setAba('paginas')}>Páginas</button>
+        <button className={aba === 'busca' ? 'on' : ''} onClick={() => setAba('busca')}>Curadoria inteligente</button>
+      </div>
+      {aba === 'busca' ? <BuscaCuradoria im={im} aoAbrir={(lp) => { carregar(); setEditando(lp); }} /> : (<>
       <div className="adm-acoes" style={{ justifyContent: 'flex-start', marginBottom: 14 }}>
         <button className="adm-btn adm-primario" onClick={() => setCriando('curadoria')}>+ Curadoria</button>
         <button className="adm-btn" onClick={() => setCriando('campanha')}>+ Página de campanha</button>
@@ -81,6 +89,7 @@ export default function Lps() {
         </ul>
       )}
       <p className="adm-nota">Páginas de curadoria não aparecem no Google e só abrem pelo link. Quando o lead abre ou marca “quero visitar”, você recebe um e-mail na hora.</p>
+      </>)}
     </section>
   );
 }
@@ -232,9 +241,9 @@ function EditorLp({ lp, im, eventos, aoFechar, aoAbrir }) {
     if (!confirm('Arquivar esta página? O link deixa de funcionar.')) return;
     await sb().from('lps').update({ status: 'arquivada' }).eq('id', lp.id); aoFechar(true);
   };
-  const copiar = async () => { try { await navigator.clipboard.writeText(linkDe(f.slug)); setMsg('Link copiado.'); } catch (e) { setMsg(linkDe(f.slug)); } };
+  const copiar = async () => { try { await navigator.clipboard.writeText(linkDe(f.slug, f.tipo)); setMsg('Link copiado.'); } catch (e) { setMsg(linkDe(f.slug, f.tipo)); } };
   const lead = lp.leads;
-  const zapLead = lead?.whatsapp ? `https://wa.me/${lead.whatsapp}?text=${encodeURIComponent(`Oi, ${String(lead.nome || '').split(' ')[0]}! Separei os imóveis que combinam com o que vocês me contaram. Para cada um eu explico por que escolhi e o que merece atenção: ${linkDe(f.slug)}`)}` : null;
+  const zapLead = lead?.whatsapp ? `https://wa.me/${lead.whatsapp}?text=${encodeURIComponent(`Oi, ${String(lead.nome || '').split(' ')[0]}! Separei os imóveis que combinam com o que vocês me contaram. Para cada um eu explico por que escolhi: ${linkDe(f.slug, f.tipo)}`)}` : null;
 
   const lpPrevia = { ...f, primeiro_nome: lead?.nome ? String(lead.nome).split(' ')[0] : null };
 
@@ -309,13 +318,13 @@ function EditorLp({ lp, im, eventos, aoFechar, aoAbrir }) {
           {f.status === 'publicada' && (
             <div className="adm-bloco" style={{ marginTop: 14 }}>
               <h2>Compartilhar</h2>
-              <p className="adm-sub" style={{ margin: 0, wordBreak: 'break-all' }}>{linkDe(f.slug)}</p>
+              <p className="adm-sub" style={{ margin: 0, wordBreak: 'break-all' }}>{linkDe(f.slug, f.tipo)}</p>
               <div className="adm-acoes" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
                 <button className="adm-btn" onClick={copiar}>Copiar link</button>
-                <a className="adm-btn" href={linkDe(f.slug)} target="_blank" rel="noopener">Abrir</a>
+                <a className="adm-btn" href={linkDe(f.slug, f.tipo)} target="_blank" rel="noopener">Abrir</a>
                 {zapLead && <a className="adm-btn adm-whats" href={zapLead} target="_blank" rel="noopener">Enviar para {String(lead.nome || '').split(' ')[0]}</a>}
               </div>
-              {f.tipo === 'campanha' && <p className="adm-sub" style={{ margin: 0 }}>No anúncio, use o link com UTM: {linkDe(f.slug)}?utm_source=meta&utm_campaign=NOME</p>}
+              {f.tipo === 'campanha' && <p className="adm-sub" style={{ margin: 0 }}>No anúncio, use o link com UTM: {linkDe(f.slug, f.tipo)}?utm_source=meta&utm_campaign=NOME</p>}
             </div>
           )}
         </div>
