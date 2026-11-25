@@ -2,6 +2,7 @@
 // Quem lê o Drive é um Google Apps Script rodando na conta do Anderson (só ele tem acesso às pastas).
 // O script manda o índice das pastas e depois as fotos, uma por chamada. Credencial: config.drive.token.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { decode, Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const URL_SB = Deno.env.get("SUPABASE_URL")!;
 const sb = createClient(URL_SB, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -54,26 +55,37 @@ async function plano(body: any) {
   return { fila, total_mapeados: cods.length };
 }
 
-// 3) uma foto (grande 1600 px e miniatura 720 px, já redimensionadas pelo Google)
+// 3) uma foto: recomprime aqui (1080 px, até 12 fotos) para caber no plano grátis; a miniatura sai da mesma imagem
 async function foto(body: any) {
   const nn = String(body.i).padStart(2, "0");
+  if (Number(body.i) > 12) return { ok: true, ignorada: true };
   const base = `${pasta(String(body.codigo))}/${nn}`;
-  for (const [suf, dado] of [["", body.grande], ["-p", body.pequena]] as const) {
-    if (!dado) continue;
-    const { error } = await sb.storage.from("imoveis").upload(`${base}${suf}.jpg`, b64(dado), { contentType: "image/jpeg", upsert: true });
+  let img: any = await decode(b64(body.grande));
+  if (typeof img.resize !== "function") throw new Error("formato de imagem não suportado");
+  const lado = Math.max(img.width, img.height);
+  if (lado > 1080) img = img.resize(img.width >= img.height ? 1080 : Image.RESIZE_AUTO, img.width >= img.height ? Image.RESIZE_AUTO : 1080);
+  const grande = await img.encodeJPEG(58);
+  const p = img.clone(); const lp = Math.max(p.width, p.height);
+  const peq = await (lp > 720 ? p.resize(p.width >= p.height ? 720 : Image.RESIZE_AUTO, p.width >= p.height ? Image.RESIZE_AUTO : 720) : p).encodeJPEG(55);
+  for (const [suf, dado] of [["", grande], ["-p", peq]] as const) {
+    const { error } = await sb.storage.from("imoveis").upload(`${base}${suf}.jpg`, dado, { contentType: "image/jpeg", upsert: true });
     if (error) throw new Error(error.message);
   }
-  return { ok: true };
+  return { ok: true, kb: Math.round(grande.length / 1024) };
 }
 
 // 4) troca a galeria do imóvel pelas fotos limpas (o site e o Estúdio passam a usar só elas)
 async function fechar(body: any) {
-  const cod = String(body.codigo); const n = Number(body.n);
+  const cod = String(body.codigo);
+  const externa = typeof body.base === "string" && /^https:\/\/fotos\.anderson-ebc\.workers\.dev\//.test(body.base);
+  const n = Math.min(externa ? 15 : 12, Number(body.n));
   if (!n) return { erro: "sem fotos" };
   const { data: im } = await sb.from("imoveis").select("id,status,origem,fotos,campos").eq("codigo", cod).single();
   if (!im) return { erro: "imóvel não encontrado" };
   const v = Date.now().toString(36);
-  const fotos = Array.from({ length: n }, (_, i) => `${PUB}${pasta(cod)}/${String(i + 1).padStart(2, "0")}.jpg?v=${v}`);
+  // fotos no Cloudflare R2 (qualidade cheia, 10 GB grátis) ou, no modo antigo, no armazenamento do Supabase
+  const base = externa ? String(body.base).replace(/\/$/, "") : `${PUB}${pasta(cod)}`;
+  const fotos = Array.from({ length: n }, (_, i) => `${base}/${String(i + 1).padStart(2, "0")}.jpg?v=${v}`);
   const antigas = ((im.fotos ?? []) as string[]).filter((u) => u.startsWith(PUB) && !u.includes("/limpas/"));
   const campos = { ...(im.campos ?? {}), fotos_drive: true, fotos_limpas: new Date().toISOString(), fotos_limpas_mod: Number(body.mod) || Date.now(), fotos_antigas: antigas.length ? antigas : im.campos?.fotos_antigas };
   const upd: Record<string, unknown> = { fotos, campos };
@@ -81,17 +93,42 @@ async function fechar(body: any) {
   await sb.from("imoveis").update(upd).eq("id", im.id);
   // sobra de fotos de uma cópia anterior maior
   const { data: lista } = await sb.storage.from("imoveis").list(pasta(cod), { limit: 200 });
-  const sobra = (lista ?? []).map((f: any) => f.name).filter((nm: string) => Number(nm.slice(0, 2)) > n).map((nm: string) => `${pasta(cod)}/${nm}`);
+  const sobra = (lista ?? []).map((f: any) => f.name).filter((nm: string) => externa || Number(nm.slice(0, 2)) > n).map((nm: string) => `${pasta(cod)}/${nm}`);
   if (sobra.length) await sb.storage.from("imoveis").remove(sobra);
   // as cópias antigas com selo só saem do armazenamento quando o Anderson liberar (config.drive.apagar_antigas)
   const c = await cfg("drive");
   let apagadas = 0;
-  if (c.apagar_antigas && antigas.length) {
-    const caminhos = antigas.flatMap((u) => { const p = u.slice(PUB.length).split("?")[0]; return [p, p.replace(/\.(jpe?g|webp)$/i, "-p.$1")]; });
-    const { data } = await sb.storage.from("imoveis").remove(caminhos);
-    apagadas = data?.length ?? 0;
+  const velhas = antigas.length ? antigas : ((im.campos?.fotos_antigas ?? []) as string[]);
+  if (c.apagar_antigas && velhas.length) {
+    // apaga a pasta inteira das cópias antigas (domus/<ref>/ ou sartori/<cod>/), com selo e sem selo
+    const dirs = [...new Set(velhas.map((u) => u.slice(PUB.length).split("?")[0].split("/").slice(0, -1).join("/")))]
+      .filter((d) => /^(domus|sartori)\/[^/]+$/.test(d));
+    for (const d of dirs) {
+      const { data: arqs } = await sb.storage.from("imoveis").list(d, { limit: 500 });
+      const caminhos = (arqs ?? []).map((f: any) => `${d}/${f.name}`);
+      if (caminhos.length) { const { data } = await sb.storage.from("imoveis").remove(caminhos); apagadas += data?.length ?? 0; }
+    }
+    await sb.from("imoveis").update({ campos: { ...campos, fotos_antigas: null } }).eq("id", im.id);
   }
   return { ok: true, fotos: n, apagadas };
+}
+
+// 5) miniatura da primeira foto de cada pasta ainda sem imóvel ligado, para eu casar pasta e imóvel pela imagem
+async function previasPendentes() {
+  const idx = await cfg("drive_indice");
+  const mapa = await cfg("drive_mapa");
+  const feitas = new Set(((await cfg("drive_previas")).ids ?? []) as string[]);
+  const ligadas = new Set(Object.values(mapa).map((m: any) => m.pasta));
+  const pend = (idx.pastas ?? []).filter((p: any) => p.primeira && !feitas.has(p.id) && !ligadas.has(p.id) && !/INATIVOS|N[ÃA]O USAR|vendid/i.test(`${p.caminho}/${p.nome}`));
+  return { pastas: pend.slice(0, 60).map((p: any) => ({ id: p.id, primeira: p.primeira })), restantes: pend.length };
+}
+async function previa(body: any) {
+  const { error } = await sb.storage.from("imoveis").upload(`drive-prev/${body.pasta}.jpg`, b64(body.img), { contentType: "image/jpeg", upsert: true });
+  if (error) throw new Error(error.message);
+  const c = await cfg("drive_previas");
+  const ids = new Set((c.ids ?? []) as string[]); ids.add(String(body.pasta));
+  await salvarCfg("drive_previas", { ids: [...ids] });
+  return { ok: true };
 }
 
 Deno.serve(async (req) => {
@@ -104,6 +141,8 @@ Deno.serve(async (req) => {
     if (body.acao === "plano") return json(await plano(body));
     if (body.acao === "foto") return json(await foto(body));
     if (body.acao === "fechar") return json(await fechar(body));
+    if (body.acao === "previas_pendentes") return json(await previasPendentes());
+    if (body.acao === "previa") return json(await previa(body));
     return json({ erro: "ação desconhecida" }, 400);
   } catch (e) { return json({ erro: (e as Error).message }, 500); }
 });
