@@ -12,6 +12,7 @@ import TarefasPainel from './TarefasPainel';
 import Estudio from './Estudio';
 import Relatorios from './Relatorios';
 import Anuncios from './Anuncios';
+import Avisos from './Avisos';
 
 export default function Admin() {
   const [sessao, setSessao] = useState(undefined);
@@ -22,6 +23,7 @@ export default function Admin() {
   const [pendentes, setPendentes] = useState(0);
   const [abrirContato, setAbrirContato] = useState(null);
   const [atrasadas, setAtrasadas] = useState(0);
+  const [avisos, setAvisos] = useState(0);
   const [nonce, setNonce] = useState(0);
   const ir = (a) => { setAba(a); setNonce((n) => n + 1); };
 
@@ -29,7 +31,7 @@ export default function Admin() {
   useEffect(() => {
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw-admin.js', { scope: '/admin/' }).catch(() => {});
     const q = new URLSearchParams(window.location.search).get('aba');
-    if (q && ['imoveis', 'pipeline', 'contatos', 'tarefas', 'agenda', 'lps', 'estudio', 'relatorios', 'whats', 'config'].includes(q)) setAba(q);
+    if (q && ['avisos', 'imoveis', 'pipeline', 'contatos', 'tarefas', 'agenda', 'lps', 'estudio', 'anuncios', 'relatorios', 'whats', 'config'].includes(q)) setAba(q);
   }, []);
   useEffect(() => {
     const c = sb();
@@ -47,7 +49,10 @@ export default function Admin() {
       .gte('inicio', new Date(Date.now() - 864e5).toISOString()).then(({ count }) => setPendentes(count || 0));
     sb().from('tarefas').select('id', { count: 'exact', head: true }).is('concluida_em', null).lt('vence_em', new Date().toISOString())
       .then(({ count }) => setAtrasadas(count || 0));
+    contarAvisos();
   }, [permitido, aba]);
+  const contarAvisos = () => sb().from('notificacoes').select('id', { count: 'exact', head: true }).is('lida_em', null)
+    .gte('criado_em', new Date(Date.now() - 30 * 864e5).toISOString()).then(({ count }) => setAvisos(count || 0));
 
   if (sessao === undefined) return <div className="adm adm-centro">Carregando…</div>;
   if (!sessao) return <Login />;
@@ -61,6 +66,7 @@ export default function Admin() {
       <header className="adm-topo">
         <img src="/marca/anderson-costa-horizontal-preto.svg" alt="Anderson Costa" height="22" />
         <nav>
+          <button className={aba === 'avisos' ? 'on' : ''} onClick={() => ir('avisos')}>Avisos{avisos > 0 && <span className="adm-badge">{avisos}</span>}</button>
           <button className={aba === 'imoveis' ? 'on' : ''} onClick={() => ir('imoveis')}>Imóveis</button>
           <button className={aba === 'pipeline' ? 'on' : ''} onClick={() => ir('pipeline')}>Pipeline</button>
           <button className={aba === 'contatos' ? 'on' : ''} onClick={() => ir('contatos')}>Contatos</button>
@@ -75,6 +81,7 @@ export default function Admin() {
         </nav>
         <button className="adm-link" onClick={() => sb().auth.signOut()}>Sair</button>
       </header>
+      {aba === 'avisos' && <Avisos key={nonce} aoIr={ir} aoMudar={contarAvisos} />}
       {aba === 'imoveis' && <Imoveis key={nonce} />}
       {aba === 'pipeline' && <Pipeline key={nonce} abrirId={abrirLead} aoAbrir={setAbrirLead} aoAbrirContato={(id) => { setAbrirContato(id); setAba('contatos'); }} />}
       {aba === 'contatos' && <Contatos key={nonce} abrirId={abrirContato} aoAbrirNegocio={(id) => { setAbrirLead(id); setAbrirContato(null); setAba('pipeline'); }} />}
