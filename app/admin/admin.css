@@ -413,3 +413,12 @@
 .cur-porque-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .84rem; font-weight: 600; color: var(--texto-2); }
 .cur-porque-topo .cur-link { padding: 0; }
 .cur-porque { width: 100%; }
+
+/* Avisos */
+.adm-avisos-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.adm-avisos-lista li { background: #fff; border: 1px solid var(--linha); border-left: 5px solid #6b7280; border-radius: 10px; padding: 12px 14px; cursor: pointer; }
+.adm-avisos-lista li.lido { opacity: .6; }
+.adm-avisos-lista li strong { display: block; margin: 6px 0 2px; }
+.adm-avisos-lista li p { margin: 0 0 4px; color: var(--texto-2); font-size: .9rem; }
+.adm-avisos-lista li small { color: var(--texto-2); font-size: .78rem; }
+.adm-aviso-tag { display: inline-block; color: #fff; font: 700 .68rem/1 var(--corpo); letter-spacing: .04em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; }
