@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { brl } from '@/lib/format';
 import { BANCOS, ATUALIZADO, TETO_SFH, IDADE_MAX_FIM, COMPROMETIMENTO } from '@/lib/financiamento';
-// Impostos e cartório ficam fora do site: o Anderson passa os custos por escrito na conversa (decisão de 13/11/2026).
+import { custosCompra, CUSTOS_ATUALIZADO } from '@/lib/custos';
+// Impostos e cartório: estimativa no site (decisão de 26/11/2026, substitui a de 13/11/2026). O valor oficial segue por escrito na conversa.
 const pct = (v) => v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 export default function Analise({ i, comp }) {
   const [bancoId, setBancoId] = useState('caixa');
@@ -24,6 +25,11 @@ export default function Analise({ i, comp }) {
   const temRef = !!comp;
   const avisoEnt = (+entTxt || 0) < entMin;
   const avisoPrazo = (+anosTxt || 0) > prazoTeto;
+  const [forma, setForma] = useState(i.aceitaFinanciamento === false ? 'vista' : 'fin');
+  const [primeiro, setPrimeiro] = useState('nao');
+  const podeSfh = i.preco <= TETO_SFH;
+  const custos = custosCompra({ preco: i.preco, cidade: i.cidade, financiado: forma === 'fin' ? fin : 0, primeiroSfh: podeSfh && primeiro === 'sim' });
+  const entradaDia = forma === 'fin' ? i.preco * ent / 100 : i.preco;
   return (
     <section className="analise" id="analise">
       <span className="eyebrow">Método Compra Segura</span>
@@ -64,7 +70,19 @@ export default function Analise({ i, comp }) {
         <div className="linha"><span>Última parcela estimada</span><b>{brl(pN)}</b></div>
         <div className="linha" style={{ borderBottom: 0 }}><span>Renda familiar bruta sugerida</span><b>{brl(renda)}</b></div>
       </div>
-      <p className="nota">Taxas de balcão "a partir de" divulgadas pelos bancos ({ATUALIZADO}), para financiamento SBPE na tabela SAC. A taxa final depende da análise de crédito, do relacionamento com o banco e da avaliação do imóvel. A parcela não inclui seguros obrigatórios (MIP e DFI), tarifa de administração nem TR, e os bancos costumam limitar a parcela a cerca de {COMPROMETIMENTO * 100}% da renda bruta. {i.preco > TETO_SFH ? 'Este imóvel está acima do teto do SFH (R$ 2,25 milhões): o financiamento é pelo SFI, sem uso de FGTS, e as condições podem ser diferentes. ' : 'Imóvel dentro do teto do SFH: dá para usar FGTS na entrada, se você tiver direito. '}Faço a simulação oficial com você antes de qualquer proposta, e passo por escrito os custos de cartório e impostos.</p>
+      <p className="nota">Taxas de balcão "a partir de" divulgadas pelos bancos ({ATUALIZADO}), para financiamento SBPE na tabela SAC. A taxa final depende da análise de crédito, do relacionamento com o banco e da avaliação do imóvel. A parcela não inclui seguros obrigatórios (MIP e DFI), tarifa de administração nem TR, e os bancos costumam limitar a parcela a cerca de {COMPROMETIMENTO * 100}% da renda bruta. {i.preco > TETO_SFH ? 'Este imóvel está acima do teto do SFH (R$ 2,25 milhões): o financiamento é pelo SFI, sem uso de FGTS, e as condições podem ser diferentes. ' : 'Imóvel dentro do teto do SFH: dá para usar FGTS na entrada, se você tiver direito. '}Faço a simulação oficial com você antes de qualquer proposta.</p>
+      <h3 style={{ marginTop: 28 }}>Custos da compra além do preço</h3>
+      <p className="muted">ITBI e cartório, que quase ninguém coloca na conta e que normalmente não entram no financiamento.</p>
+      <div className="sim">
+        <label>Forma de compra<select value={forma} onChange={(e) => setForma(e.target.value)}><option value="fin">Financiada</option><option value="vista">À vista</option></select></label>
+        {forma === 'fin' && podeSfh && <label>Primeiro imóvel residencial?<select value={primeiro} onChange={(e) => setPrimeiro(e.target.value)}><option value="nao">Não</option><option value="sim">Sim, pelo SFH</option></select></label>}
+      </div>
+      <div className="linhas">
+        {custos.itens.map((c) => <div className="linha" key={c.id}><span>{c.nome}</span><b>{brl(c.valor)}</b></div>)}
+        <div className="linha"><span><b>Total de impostos e cartório</b></span><b>{brl(custos.total)}</b></div>
+        <div className="linha" style={{ borderBottom: 0 }}><span>{forma === 'fin' ? 'Entrada + custos (o que sai do seu bolso)' : 'Preço + custos'}</span><b>{brl(entradaDia + custos.total)}</b></div>
+      </div>
+      <p className="nota">Estimativa pela {CUSTOS_ATUALIZADO} de emolumentos de Santa Catarina, com o fundo do Judiciário (FRJ) incluído. {custos.itbiConfirmado ? 'ITBI de Jaraguá do Sul: 2% sobre o valor da compra, que a prefeitura pode revisar se considerar abaixo do mercado. ' : `ITBI estimado em 2%: a alíquota de ${i.cidade || 'cada cidade'} eu confirmo com a prefeitura. `}{forma === 'fin' ? 'No financiamento, o contrato do banco já vale como escritura, então não há escritura em cartório, mas são dois registros: o da compra e o da garantia do banco. ' : ''}{custos.desconto ? 'Na primeira compra residencial financiada pelo SFH, a lei reduz pela metade os emolumentos de registro (Lei 6.015/73, art. 290). ' : ''}Não entram aqui certidões, ISS municipal sobre o cartório{forma === 'fin' ? ', a tarifa de avaliação do imóvel cobrada pelo banco' : ''} e eventuais custos de mudança. Passo o valor exato por escrito antes de você assinar qualquer coisa.</p>
     </section>
   );
 }
