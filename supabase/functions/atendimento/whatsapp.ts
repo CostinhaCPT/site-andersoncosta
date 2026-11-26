@@ -137,6 +137,16 @@ export async function marcarLida(wamid: string) {
   }).catch(() => {});
 }
 
+/** Shows "digitando..." to the person (WhatsApp clears it after 25 s or when the next message is sent). */
+export async function digitando(wamid: string) {
+  if (!waConfigurado() || !wamid) return;
+  await fetch(`${GRAPH}/${PHONE_ID}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", status: "read", message_id: wamid, typing_indicator: { type: "text" } }),
+  }).catch(() => {});
+}
+
 /** Downloads a media file (audio or image) sent by the person. */
 export async function baixarMidia(id: string, maxBytes: number): Promise<{ bytes: Uint8Array; mime: string } | null> {
   if (!TOKEN) return null;

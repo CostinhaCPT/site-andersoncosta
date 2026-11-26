@@ -12,7 +12,7 @@ import {
   base64ParaBytes, bytesParaBase64, guardarAnexo, limparAnexos, MAX_AUDIO_BYTES, MAX_IMAGEM_BYTES, sintetizar, transcrever,
 } from "./midia.ts";
 import {
-  assinaturaValida, baixarMidia, enviarAudio, enviarHorarios, enviarTexto, foneCanonico, gerirTemplates, marcarLida, pediuParaParar, VERIFY_TOKEN,
+  assinaturaValida, baixarMidia, digitando, enviarAudio, enviarHorarios, enviarTexto, foneCanonico, gerirTemplates, marcarLida, pediuParaParar, VERIFY_TOKEN,
 } from "./whatsapp.ts";
 import { tick as followupTick } from "./followup.ts";
 
@@ -1094,6 +1094,27 @@ async function contarSaida(leadId: string | null, n = 1) {
 
 const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Waits ms, re-sending "digitando..." every 20 s (WhatsApp drops it after 25 s).
+async function esperarDigitando(wamid: string, ms: number, mostrar = true) {
+  const fim = Date.now() + ms;
+  while (Date.now() < fim) {
+    if (mostrar) await digitando(wamid);
+    await dormir(Math.min(20_000, Math.max(0, fim - Date.now())));
+  }
+}
+
+// The reply is saved as one message by turno(); on WhatsApp it goes out in parts, so the admin keeps one row per part.
+async function registrarEmPartes(conversaId: string, resposta: string, partes: { texto: string; wamid?: string }[]) {
+  if (partes.length < 2) return;
+  const { data: ult } = await sb.from("mensagens").select("id, conteudo").eq("conversa_id", conversaId).eq("papel", "assistente")
+    .order("criado_em", { ascending: false }).limit(1);
+  if (!ult?.[0] || ult[0].conteudo !== resposta) return;
+  await sb.from("mensagens").update({ conteudo: partes[0].texto, meta: { wamid: partes[0].wamid, parte: 1 } }).eq("id", ult[0].id);
+  for (let i = 1; i < partes.length; i++) {
+    await sb.from("mensagens").insert({ conversa_id: conversaId, papel: "assistente", conteudo: partes[i].texto, meta: { wamid: partes[i].wamid, parte: i + 1 } });
+  }
+}
+
 async function processarWebhook(payload: Record<string, any>) {
   for (const entry of payload.entry ?? []) {
     for (const ch of entry.changes ?? []) {
@@ -1207,7 +1228,7 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
   if (eIns) { if ((eIns as any).code === "23505") return; throw eIns; }
   await sb.from("conversas").update({ atualizado_em: new Date().toISOString() }).eq("id", conversa!.id);
   await sb.from("leads").update({ ultima_atividade: new Date().toISOString() }).eq("id", lead!.id);
-  await marcarLida(m.id);
+  const t0 = Date.now(); // "visto" e resposta saem com ritmo humano, mais abaixo
 
   // Pedido para parar: trava permanente, antes de qualquer outra coisa
   if (pediuParaParar(texto) || /^(parar|stop|sair)$/i.test(escolha ?? "")) await registrarOptOut(lead!.id, "whatsapp");
@@ -1217,6 +1238,7 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
   const permitido = cw.ativo && (!cw.modo_teste || (cw.numeros_teste ?? []).includes(fone));
   const avisoRecente = conversa!.contexto?.ultimo_aviso && Date.now() - Date.parse(conversa!.contexto.ultimo_aviso) < 30 * 60_000;
   if (!permitido || conversa!.status === "anderson") {
+    await marcarLida(m.id);
     if (!avisoRecente) {
       await sb.from("conversas").update({ contexto: { ...conversa!.contexto, ultimo_aviso: new Date().toISOString() } }).eq("id", conversa!.id);
       await avisarAnderson(`WhatsApp · ${lead!.nome ?? fone} escreveu`, `<p><b>${esc(lead!.nome ?? "Sem nome")}</b> · ${esc(foneBR(fone))}</p><p style="background:#f5f2ec;padding:12px;border-radius:6px">${esc(texto)}</p><p>${conversa!.status === "anderson" ? "A conversa está com você, o robô não responde." : "O robô está desligado ou em modo teste para este número."} <a href="${SITE}/admin/">Responder pelo admin</a>.</p>`);
@@ -1238,8 +1260,14 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
     await sb.from("mensagens").update({ conteudo: "Nenhum desses horários serve para mim." }).eq("meta->>wamid", m.id);
   }
 
-  // Junta mensagens em sequência: espera um pouco e deixa a mais nova responder por todas
-  await dormir(4000);
+  // Ritmo humano: lê depois de alguns segundos, espera a pessoa terminar de escrever (a mensagem mais nova responde
+  // por todas) e manda a primeira parte perto de config.whatsapp.ritmo.resposta_s (padrão 60 s) depois da última mensagem.
+  const ritmo = (cw as any).ritmo ?? {};
+  const alvoMs = Math.max(5, Number(ritmo.resposta_s ?? 60)) * 1000;
+  const leMin = Number(ritmo.leitura_min_s ?? 8), leMax = Number(ritmo.leitura_max_s ?? 18);
+  await dormir(Math.min((leMin + Math.random() * Math.max(0, leMax - leMin)) * 1000, alvoMs / 2));
+  await marcarLida(m.id);
+  await dormir(Math.max(0, Math.min(alvoMs * 0.5, alvoMs - 25_000) - (Date.now() - t0)));
   const { data: depois } = await sb.from("mensagens").select("id, meta").eq("conversa_id", conversa!.id).eq("papel", "usuario")
     .order("criado_em", { ascending: false }).limit(1);
   if (depois?.[0] && depois[0].meta?.wamid !== m.id) return;
@@ -1260,6 +1288,7 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
   if (veioAudio && OPENAI) {
     try {
       const ogg = await sintetizar(resposta, "opus");
+      await esperarDigitando(m.id, Math.max(3000, alvoMs - (Date.now() - t0)), false);
       const e = await enviarAudio(waId, ogg);
       if (e.ok) { enviados++; falou = true; }
     } catch (e) { console.error("wa voz", e); }
@@ -1268,7 +1297,16 @@ async function mensagemWhatsapp(m: Record<string, any>, contato: Record<string, 
     const links = [...new Set(resposta.match(/https?:\/\/\S+/g) ?? [])];
     if (links.length) { const e = await enviarTexto(waId, (links.length > 1 ? "Os links que comentei:\n" : "O link que comentei:\n") + links.join("\n")); if (e.ok) enviados++; }
   } else {
-    for (const b of blocos) { const e = await enviarTexto(waId, b); if (e.ok) enviados++; }
+    // Uma mensagem por parágrafo, com "digitando..." e pausa proporcional ao tamanho
+    const enviadosTxt: { texto: string; wamid?: string }[] = [];
+    for (let i = 0; i < blocos.length; i++) {
+      const b = blocos[i];
+      const porTamanho = Math.min(7000, Math.max(2500, b.length * 40));
+      await esperarDigitando(m.id, i === 0 ? Math.max(porTamanho, alvoMs - (Date.now() - t0)) : porTamanho);
+      const e = await enviarTexto(waId, b);
+      if (e.ok) { enviados++; enviadosTxt.push({ texto: b, wamid: (e as any).wamid }); }
+    }
+    await registrarEmPartes(conversa!.id, resposta, enviadosTxt);
   }
   if (ctx.agenda?.opcoes?.length) {
     const e = await enviarHorarios(waId, ctx.agenda.opcoes, ctx.agenda.situacao && ctx.agenda.situacao !== "sugestao"
