@@ -359,6 +359,11 @@ const FERRAMENTAS = [
     },
   },
   {
+    name: "calcular_custos",
+    description: "Calcula os custos da compra além do preço (ITBI, escritura e registros em cartório) para um imóvel do catálogo, à vista e financiado. Use sempre que perguntarem de impostos, documentação, cartório ou custos da compra.",
+    input_schema: { type: "object", properties: { codigo: { type: "string", description: "código do imóvel, ex.: DM-249" }, entrada_pct: { type: "number", description: "entrada em % do preço, se a pessoa disse (padrão 30)" } }, required: ["codigo"] },
+  },
+  {
     name: "buscar_conhecimento",
     description: "Consulta a base de conhecimento do Anderson: método, financiamento, FGTS, documentos, permuta, bairros, regiões e sobre o Anderson.",
     input_schema: { type: "object", properties: { pergunta: { type: "string" } }, required: ["pergunta"] },
@@ -459,6 +464,47 @@ async function buscarImoveis(i: Record<string, unknown>) {
   };
 }
 
+// Custos da compra (ITBI e cartório), mesma regra de lib/custos.js do site (tabela TJSC 2026).
+const CUSTOS_NOTAS = [[13786.58,170.95,38.85],[20679.87,197.13,44.8],[28951.83,279.86,63.61],[35845.12,365.33,83.03],[44117.08,456.32,103.72],[53767.69,550.08,125.03],[62039.64,647.96,147.28],[71690.25,748.59,170.15],[79962.21,853.38,193.97],[90991.48,962.3,218.73],[100642.09,1076.74,244.74],[111671.36,1193.9,271.37],[122700.64,1316.61,299.26],[133729.9,1443.44,328.09],[146137.83,1574.42,357.86],[158545.76,1672.3,380.11],[170953.69,1770.19,402.36],[184740.27,1865.32,423.98],[198526.88,1959.07,445.29],[212313.47,2051.42,466.28],[226100.05,2142.42,486.97]];
+const CUSTOS_REG = [[13786.59,162.65,36.97],[20679.87,184.73,41.98],[28951.83,263.31,59.85],[35845.12,343.27,78.02],[44117.08,428.76,97.45],[53767.69,516.98,117.5],[62039.64,607.98,138.19],[71690.25,703.11,159.81],[79962.21,802.37,182.37],[90991.48,904.39,205.56],[100642.09,1010.55,229.69],[111671.36,1122.22,255.08],[122700.64,1222.85,277.95],[133729.9,1324.88,301.14],[146137.83,1429.66,324.96],[158545.76,1535.82,349.09],[170953.69,1643.35,373.53],[184740.27,1752.26,398.28],[198526.88,1863.93,423.67],[212313.47,1976.99,449.36],[226100.05,2091.41,475.37]];
+function atoCartorio(t: number[][], v: number, d = 0) {
+  const u = t[t.length - 1];
+  const f = t.find((x) => v <= x[0]);
+  const e = f ? f[1] : Math.min(5664.71, u[1] + Math.ceil((v - u[0]) / 50000) * 50);
+  const j = f ? f[2] : e * (u[2] / u[1]);
+  return e * (1 - d) + j;
+}
+async function calcularCustos(i: any) {
+  const { data: im } = await sb.from("imoveis").select("codigo, titulo, cidade, preco, preco_visivel, aceita_financiamento, slug").eq("codigo", String(i.codigo ?? "").toUpperCase().trim()).maybeSingle();
+  if (!im) return { erro: "imóvel não encontrado pelo código" };
+  if (!im.preco_visivel || !im.preco) return { erro: "preço sob consulta: diga que o Anderson passa os custos por escrito" };
+  const p = Number(im.preco);
+  const jgs = String(im.cidade ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim() === "jaragua do sul";
+  const ent = Math.min(90, Math.max(20, Number(i.entrada_pct ?? 30)));
+  const itbi = p * 0.02;
+  const esc = atoCartorio(CUSTOS_NOTAS, p) + 19.3, regV = atoCartorio(CUSTOS_REG, p);
+  const out = {
+    imovel: `${im.codigo}, ${im.titulo}, ${brl(p)}`,
+    itbi: { aliquota: "2%", valor: brl(itbi), observacao: jgs ? "alíquota de Jaraguá do Sul" : `alíquota de ${im.cidade} a confirmar com a prefeitura` },
+    a_vista: { escritura: brl(esc), registro: brl(regV), total_com_itbi: brl(itbi + esc + regV) },
+    link_calculo: `${SITE}/imovel/${im.slug}/#analise`,
+    nao_inclui: "certidões, ISS municipal do cartório e, no financiamento, a tarifa de avaliação do banco",
+    regra: "Valores só deste imóvel. Estimativa; o Anderson confirma por escrito antes da assinatura.",
+  };
+  if (im.aceita_financiamento === false) out.financiado = "o anúncio informa que este imóvel não aceita financiamento";
+  else {
+    const fin = p * (1 - ent / 100);
+    const rc = atoCartorio(CUSTOS_REG, p), rg = atoCartorio(CUSTOS_REG, fin);
+    const rc1 = atoCartorio(CUSTOS_REG, p, 0.5), rg1 = atoCartorio(CUSTOS_REG, fin, 0.5);
+    out.financiado = {
+      entrada: `${ent}% (${brl(p * ent / 100)})`, valor_financiado: brl(fin),
+      registro_da_compra: brl(rc), registro_da_garantia_do_banco: brl(rg), escritura: "não tem: o contrato do banco vale como escritura",
+      total_com_itbi: brl(itbi + rc + rg),
+      ...(p <= 2250000 ? { total_se_primeiro_imovel_residencial_sfh: brl(itbi + rc1 + rg1) } : {}),
+    };
+  }
+  return out;
+}
 async function buscarConhecimento(i: Record<string, unknown>) {
   const pergunta = String(i.pergunta ?? "");
   const [emb] = await embed([pergunta]);
@@ -675,6 +721,7 @@ async function executar(nome: string, input: Record<string, unknown>, ctx: Ctx) 
   try {
     if (nome === "buscar_imoveis") return await buscarImoveis(input);
     if (nome === "buscar_conhecimento") return await buscarConhecimento(input);
+    if (nome === "calcular_custos") return await calcularCustos(input);
     if (nome === "registrar_lead") return await registrarLead(input, ctx);
     if (nome === "passar_para_anderson") return await passarParaAnderson(input, ctx);
     if (nome === "registrar_proximo_passo") return await registrarProximoPasso(input, ctx);
