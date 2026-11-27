@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LinkWhats from '@/components/LinkWhats';
 import { notFound } from 'next/navigation';
 import Perguntas from '@/components/Perguntas';
 import { perguntas, porSlugP, mesAno } from '@/lib/perguntas';
@@ -61,7 +62,7 @@ export default function Pagina({ params }) {
       <p className="lead" style={{ maxWidth: 560, color: '#d6d6d6' }}>Eu respondo pessoalmente, com os números do seu caso.</p>
       <div className="acoes" style={{ justifyContent: 'center' }}>
         <Link href={p.cta.href} className="btn btn-claro">Começar</Link>
-        <a href={wa} className="btn btn-borda" target="_blank" rel="noopener">Falar no WhatsApp</a>
+        <LinkWhats href={wa} className="btn btn-borda" local="pergunta">Falar no WhatsApp</LinkWhats>
       </div>
     </div></section>
 
