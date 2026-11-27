@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SITE } from '@/lib/site';
 import { bairros } from '@/lib/imoveis';
+import LinkWhats from '@/components/LinkWhats';
 export default function Rodape() {
   return (
     <footer className="rodape">
@@ -17,7 +18,7 @@ export default function Rodape() {
           </div>
           <div>
             <span className="eyebrow">Atendimento</span>
-            <a href={`https://wa.me/${SITE.whatsapp}`} target="_blank" rel="noopener">WhatsApp {SITE.telefoneVisivel}</a>
+            <LinkWhats href={`https://wa.me/${SITE.whatsapp}`} local="rodape">WhatsApp {SITE.telefoneVisivel}</LinkWhats>
             <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
             <Link href="/curadoria/">Curadoria gratuita</Link>
             <Link href="/corretor-de-imoveis-jaragua-do-sul/">Corretor de imóveis em Jaraguá do Sul</Link>

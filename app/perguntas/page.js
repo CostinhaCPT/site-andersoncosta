@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LinkWhats from '@/components/LinkWhats';
 import { perguntas } from '@/lib/perguntas';
 import { SITE } from '@/lib/site';
 
@@ -31,7 +32,7 @@ export default function Pagina() {
     <section className="sec escuro lp-cta"><div className="wrap">
       <h2>Não achou a sua pergunta?</h2>
       <p className="lead" style={{ maxWidth: 560, color: '#d6d6d6' }}>Me conta o que você quer saber e eu respondo pessoalmente, com os números do seu caso.</p>
-      <div className="acoes" style={{ justifyContent: 'center' }}><a href={`https://wa.me/${SITE.whatsapp}`} className="btn btn-claro" target="_blank" rel="noopener">Falar no WhatsApp</a></div>
+      <div className="acoes" style={{ justifyContent: 'center' }}><LinkWhats href={`https://wa.me/${SITE.whatsapp}`} className="btn btn-claro" local="perguntas">Falar no WhatsApp</LinkWhats></div>
     </div></section>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@graph': [
       { '@type': 'CollectionPage', '@id': SITE.dominio + URL, url: SITE.dominio + URL, name: 'Perguntas sobre comprar imóvel em Jaraguá do Sul e no litoral de SC', inLanguage: 'pt-BR', about: { '@id': SITE.dominio + '/#anderson' } },
