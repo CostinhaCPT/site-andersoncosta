@@ -13,7 +13,7 @@ export default function P() {
       <h2>Chat do site</h2>
       <p>O chat do site é atendido por uma assistente virtual com inteligência artificial, que conversa em meu nome até eu assumir pessoalmente. As mensagens trocadas ficam registradas para dar continuidade ao seu atendimento. Se você enviar um áudio, ele é transcrito em texto; se enviar uma foto, ela é analisada para encontrar imóveis parecidos. Áudios e fotos ficam guardados em área privada e são apagados automaticamente após 90 dias. Para funcionar, o texto da conversa é processado por fornecedores de tecnologia (Anthropic, para gerar as respostas, OpenAI, para a busca de imóveis, Supabase, para o armazenamento, e Resend, para me avisar por e-mail), sem uso para outros fins. O endereço de IP é guardado apenas em forma cifrada, para evitar abuso do chat.</p>
       <h2>Cookies</h2>
-      <p>Uso ferramentas do Google e da Meta para medir o desempenho do site e dos anúncios. Elas só são ativadas se você aceitar no aviso de cookies. Você pode mudar a escolha limpando os dados do site no seu navegador.</p>
+      <p>Uso ferramentas do Google e da Meta para medir o desempenho do site e dos anúncios. Elas só são ativadas se você aceitar no aviso de cookies. Se você aceitar, o site também guarda no seu navegador um código aleatório, sem nome nem contato, que ajuda a Meta a reconhecer que os acessos vêm do mesmo aparelho. Você pode mudar a escolha limpando os dados do site no seu navegador.</p>
       <h2>Por quanto tempo guardo</h2>
       <p>Enquanto houver relacionamento comercial e, depois disso, pelo prazo necessário para cumprir obrigações legais.</p>
       <h2>Seus direitos</h2>
