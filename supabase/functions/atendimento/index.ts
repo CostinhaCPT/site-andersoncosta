@@ -616,6 +616,41 @@ async function registrarProximoPasso(i: Record<string, unknown>, ctx: Ctx) {
   await criarTarefa(ctx, { titulo: `Retomar ${nome} (pediu contato em ${dataBR(vence)})`, descricao, tipo: "whatsapp", vence, chave: `lu-retorno-${ctx.conversaId}`, prioridade: "normal" });
   return { ok: true, retorno_em: dataBR(vence), observacao: "A Lu procura a pessoa nessa data. Confirme a data com ela em meia frase." };
 }
+// Eventos de conversa para a Meta (CAPI de mensagens): lead qualificado e passagem para o Anderson, pelo ctwa_clid do anúncio.
+let WABA_ID = "";
+async function wabaId() {
+  if (WABA_ID) return WABA_ID;
+  const { data } = await sb.from("config").select("valor").eq("chave", "whatsapp").maybeSingle();
+  WABA_ID = String((data as any)?.valor?.waba ?? "");
+  return WABA_ID;
+}
+async function guardarWaba(id: string) {
+  if (!id || id === WABA_ID) return;
+  WABA_ID = id;
+  const { data } = await sb.from("config").select("valor").eq("chave", "whatsapp").maybeSingle();
+  if ((data as any)?.valor?.waba === id) return;
+  await sb.from("config").update({ valor: { ...((data as any)?.valor ?? {}), waba: id } }).eq("chave", "whatsapp");
+}
+async function capiConversa(leadId: string | null | undefined, evento: string) {
+  try {
+    if (!leadId || !META_TOKEN) return;
+    const { data: l } = await sb.from("leads").select("origem, campos, nao_contatar").eq("id", leadId).maybeSingle();
+    const lead = l as any;
+    const clid = lead?.origem?.ctwa_clid;
+    const waba = await wabaId();
+    if (!lead || lead.nao_contatar || !clid || !waba) return;
+    const enviados: string[] = Array.isArray(lead.campos?.capi_wa) ? lead.campos.capi_wa : [];
+    if (enviados.includes(evento)) return;
+    const payload: Record<string, unknown> = { data: [{ event_name: evento, event_time: Math.floor(Date.now() / 1000), event_id: `wa-${leadId}-${evento}`, action_source: "business_messaging", messaging_channel: "whatsapp", user_data: { whatsapp_business_account_id: waba, ctwa_clid: clid } }] };
+    if (META_TESTE) payload.test_event_code = META_TESTE;
+    const r = await fetch(`https://graph.facebook.com/v23.0/${META_PIXEL}/events?access_token=${META_TOKEN}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const resp = await r.json().catch(() => ({}));
+    await sb.from("automacao_log").insert({ lead_id: leadId, evento: "capi_wa", detalhe: { evento, ok: r.ok, resp: JSON.stringify(resp).slice(0, 300) } });
+    if (r.ok) await sb.from("leads").update({ campos: { ...(lead.campos ?? {}), capi_wa: [...enviados, evento] } }).eq("id", leadId);
+  } catch (e) {
+    console.error("capi conversa", e);
+  }
+}
 const ORDEM_ETAPAS = ["novo", "em_conversa", "qualificado", "curadoria_enviada", "visita_agendada", "visita_realizada", "proposta"];
 /** Moves the stage forward from what is known about the lead. Never backwards, never out of lost. */
 async function avancarEtapa(ctx: Ctx) {
@@ -632,6 +667,7 @@ async function avancarEtapa(ctx: Ctx) {
   const para = ORDEM_ETAPAS[alvo];
   await sb.from("leads").update({ etapa: para, atualizado_em: new Date().toISOString() }).eq("id", ctx.leadId);
   await sb.from("automacao_log").insert({ lead_id: ctx.leadId, evento: "etapa", detalhe: { de: l.etapa, para, origem: "lu" } });
+  if (para === "qualificado" && ctx.canal === "whatsapp") await capiConversa(ctx.leadId, "LeadSubmitted");
   return para;
 }
 
@@ -670,6 +706,7 @@ async function passarParaAnderson(i: Record<string, unknown>, ctx: Ctx) {
   }
 
   // Só um e-mail por conversa
+  if (ctx.canal === "whatsapp" && !ctx.simulacao) await capiConversa(ctx.leadId, "QualifiedLead");
   if (!conv?.passada_em && !ctx.simulacao) await enviarAlerta(i, lead, ref, conv?.contexto ?? {}, ctx.conversaId, ctx.canal);
   return ctx.canal === "whatsapp"
     ? { ok: true, observacao: "O Anderson assume esta conversa aqui mesmo no WhatsApp. Não fale em botão." }
@@ -1164,6 +1201,7 @@ async function registrarEmPartes(conversaId: string, resposta: string, partes: {
 
 async function processarWebhook(payload: Record<string, any>) {
   for (const entry of payload.entry ?? []) {
+    if (entry.id) await guardarWaba(String(entry.id));
     for (const ch of entry.changes ?? []) {
       const v = ch.value ?? {};
       for (const st of v.statuses ?? []) {
