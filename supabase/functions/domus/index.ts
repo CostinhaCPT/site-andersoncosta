@@ -322,6 +322,11 @@ async function conferirAgendados(body: Record<string, any>) {
     const cods = new Set<string>([c.imovel_codigo, ...((Array.isArray(c.dados?.imoveis) ? c.dados.imoveis : []).map((x: any) => typeof x === "string" ? x : x?.codigo ?? x?.imovel_codigo))]);
     for (const k of cods) if (typeof k === "string" && k.startsWith(PREFIXO)) porImovel.set(k, [...(porImovel.get(k) ?? []), c]);
   }
+  if (body.ads) {
+    // anúncios ativos: confere também os imóveis anunciados (código no nome do anúncio)
+    const { data: ads } = await sb.from("ads_entidades").select("nome").eq("nivel", "anuncio").eq("status_efetivo", "ACTIVE");
+    for (const a of ads ?? []) { const k = String(a.nome ?? "").match(/DM-\d+/)?.[0]; if (k && !porImovel.has(k)) porImovel.set(k, []); }
+  }
   const res: Record<string, string> = {};
   for (const [codigo, lista] of porImovel) {
     const { data: im } = await sb.from("imoveis").select("id,status,campos").eq("codigo", codigo).maybeSingle();
