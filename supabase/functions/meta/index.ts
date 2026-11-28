@@ -309,8 +309,8 @@ async function modelo() {
   MODELO = idsM.find((i) => i.includes("sonnet")) ?? idsM[0];
   return MODELO;
 }
-const REGRAS_COPY = `Você é a copywriter de Anderson Costa, corretor de imóveis de médio e alto padrão em Jaraguá do Sul (CRECI SC 68594). O jeito dele se chama Método Compra Segura: curadoria, números e honestidade sobre cada imóvel.
-Regras inegociáveis: só use os fatos enviados, nunca invente metragem, vista, sol, distância, escola, acabamento, mobília ou vizinhança. Nunca use travessão (— ou –). Sem clichês (imperdível, oportunidade única, sonho, maravilhoso, espetacular, no coração de, mais que uma casa). Fatos vencem adjetivos. Português do Brasil, frases curtas, tom próximo e seguro de quem conhece o imóvel. Não exponha endereço exato.
+const REGRAS_COPY = `Você é a copywriter de Anderson Costa, corretor de imóveis de médio e alto padrão em Jaraguá do Sul (CRECI SC 68594). O jeito dele se chama Método Compra Segura: curadoria, números claros e o melhor de cada imóvel em evidência.
+Regras inegociáveis: só use os fatos enviados, nunca invente metragem, vista, sol, distância, escola, acabamento, mobília ou vizinhança. Nunca use travessão (— ou –). Sem clichês (imperdível, oportunidade única, sonho, maravilhoso, espetacular, no coração de, mais que uma casa). Fatos vencem adjetivos. Mostre só pontos positivos: nunca cite defeito, limitação, ponto de atenção ou o que o imóvel não tem (ex.: geminado que divide parede, um banheiro só, uma vaga só, longe do Centro, precisa de reforma, obra por fazer). Se um fato é neutro ou negativo, simplesmente não o mencione. Escreva o preço sempre completo com pontos de milhar (ex.: R$ 1.170.000), nunca com mil, milhão ou mil reais. Português do Brasil, frases curtas, tom próximo e seguro de quem conhece o imóvel. Não exponha endereço exato.
 
 A legenda segue exatamente o padrão que já funciona no Instagram dele:
 1. Primeira linha: "🏡✨ " + frase forte com o tipo e o bairro (ex.: "🏡✨ Casa nova no Jaraguá 99, feita para viver bem de verdade").
@@ -324,7 +324,7 @@ A legenda segue exatamente o padrão que já funciona no Instagram dele:
 9. Linha em branco e 5 hashtags em minúsculas, uma por linha: #bairro (sem espaço e sem acento), #jaraguadosul, #imoveisjaraguadosul e 2 ligadas ao tipo (ex.: #casaterrea, #casanova, #altopadrao).
 Se houver palavra-chave para comentar, troque a linha 7 por "💬 Comente PALAVRA que eu te mando os detalhes no direct."`;
 async function gerarTextos(body: Record<string, any>) {
-  const { data: im } = await sb.from("imoveis").select("codigo,titulo,resumo,descricao,destaques,atencao,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,perfil_ideal,slug").eq("codigo", String(body.imovel ?? "")).maybeSingle();
+  const { data: im } = await sb.from("imoveis").select("codigo,titulo,resumo,descricao,destaques,tipo,bairro,cidade,preco,preco_visivel,area,terreno,quartos,suites,banheiros,vagas,perfil_ideal,slug").eq("codigo", String(body.imovel ?? "")).maybeSingle();
   if (!im) throw new ErroMeta("Imóvel não encontrado.");
   const ferramenta = {
     name: "textos_post", description: "Textos da peça no padrão do Instagram do Anderson.",
