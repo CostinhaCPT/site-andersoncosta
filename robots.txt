@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /previa-onda2/
+Disallow: /relatorio/
+
+Sitemap: https://andersoncostaimoveis.com.br/sitemap.xml
